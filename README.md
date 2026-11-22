@@ -1,5 +1,7 @@
 # ZeroSeed.io — Serverless, End-to-End Encrypted P2P File & Folder Transfer
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+
 **ZeroSeed.io** is a browser-to-browser (**Peer-to-Peer**) web application for transferring large files, entire folders, and instant text snippets directly between devices using a one-time cryptographic **Seed**—with no accounts, no cloud uploads, no cookies, and zero server-side storage.
 
 > **Zero-Setup Ready:** The root `index.html`, `styles.css`, and `app.bundle.js` files run directly in any modern browser or on **GitHub Pages** with no build step or backend server required.
@@ -101,3 +103,9 @@ All files live directly in the repository root for effortless uploading and stat
 - **Cryptography:** Native Web Crypto API (`SHA-256`, `PBKDF2`, `HKDF`, `AES-GCM-256`, `CSPRNG`)
 - **P2P & Signaling:** WebRTC (`RTCPeerConnection`, `RTCDataChannel`), Native WebSocket MQTT v3.1.1 (`wss://`)
 - **Streaming & Archiving:** File System Access API, `fflate` / streaming PKZIP
+
+---
+
+## License
+
+Distributed under the MIT License. See [`LICENSE`](./LICENSE) for more information.
