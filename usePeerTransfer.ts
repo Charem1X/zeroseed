@@ -50,6 +50,8 @@ export type ErrorCode =
   | 'brokerAllFailed'
   | 'authTagMismatch'
   | 'peerDisconnected'
+  | 'receiverDisconnected'
+  | 'senderDisconnected'
   | 'invalidSeed'
   | 'fileWriteError'
   | 'transferAborted'
@@ -99,6 +101,18 @@ type ControlFrame =
       id: string;
       text: string;
       timestamp: number;
+    }
+  | {
+      type: 'PEER_DISCONNECT';
+      role: TransferRole;
+    }
+  | {
+      type: 'HEARTBEAT_PING';
+      ts: number;
+    }
+  | {
+      type: 'HEARTBEAT_PONG';
+      ts: number;
     };
 
 export interface ClipboardItem {
@@ -199,6 +213,12 @@ export function usePeerTransfer() {
     ((decision: { storageMode: WriteStorageMode; resumeFromChunk: number }) => void) | null
   >(null);
 
+  const heartbeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastPeerActivityRef = useRef<number>(0);
+  const disconnectHandledRef = useRef<boolean>(false);
+  const roleRef = useRef<TransferRole>(role);
+  roleRef.current = role;
+
   const revokeActiveBlobUrl = useCallback(() => {
     if (activeBlobUrlRef.current) {
       try {
@@ -225,6 +245,11 @@ export function usePeerTransfer() {
   }, []);
 
   const cleanupPeerConnectionOnly = useCallback(() => {
+    if (heartbeatIntervalRef.current) {
+      clearInterval(heartbeatIntervalRef.current);
+      heartbeatIntervalRef.current = null;
+    }
+
     if (dataChannelRef.current) {
       try {
         dataChannelRef.current.onopen = null;
@@ -243,6 +268,7 @@ export function usePeerTransfer() {
         peerConnRef.current.onicecandidate = null;
         peerConnRef.current.ondatachannel = null;
         peerConnRef.current.onconnectionstatechange = null;
+        peerConnRef.current.oniceconnectionstatechange = null;
         peerConnRef.current.close();
       } catch {
         // ignore
@@ -283,6 +309,76 @@ export function usePeerTransfer() {
     const encryptedStr = await encryptJsonPayload(derived.transferKey, frame, aadContext);
     dc.send(encryptedStr);
   }, []);
+
+  /**
+   * Handles remote peer disconnection immediately (even after transfer completion),
+   * notifies the local user explicitly, and unlocks UI for recovery.
+   */
+  const handleRemoteDisconnect = useCallback(
+    (peerRole?: TransferRole) => {
+      if (disconnectHandledRef.current) return;
+      disconnectHandledRef.current = true;
+
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
+        heartbeatIntervalRef.current = null;
+      }
+
+      abortTransferFlagRef.current = true;
+      pendingSenderOfferIdRef.current = null;
+      if (acceptResolverRef.current) {
+        acceptResolverRef.current({ storageMode: 'ram', resumeFromChunk: 0 });
+        acceptResolverRef.current = null;
+      }
+
+      if (receiverStateRef.current) {
+        receiverStateRef.current.disconnectedForResume = true;
+      }
+
+      cleanupPeerConnectionOnly();
+      setIncomingOffer(null);
+
+      setErrorCode(
+        roleRef.current === 'sender'
+          ? 'receiverDisconnected'
+          : peerRole === 'sender'
+          ? 'senderDisconnected'
+          : 'peerDisconnected'
+      );
+
+      setTelemetry((prev) => ({
+        ...prev,
+        phase: 'error',
+        roomLocked: false,
+      }));
+    },
+    [cleanupPeerConnectionOnly]
+  );
+
+  /**
+   * Notifies the remote peer over the encrypted DataChannel before tearing down locally.
+   */
+  const notifyPeerAndDisconnect = useCallback(
+    async (waitFlush = true) => {
+      disconnectHandledRef.current = true;
+      const dc = dataChannelRef.current;
+      if (dc && dc.readyState === 'open') {
+        try {
+          await sendControlFrame({
+            type: 'PEER_DISCONNECT',
+            role: roleRef.current,
+          });
+          if (waitFlush) {
+            await new Promise((resolve) => setTimeout(resolve, 80));
+          }
+        } catch {
+          // ignore
+        }
+      }
+      fullDisconnect();
+    },
+    [fullDisconnect, sendControlFrame]
+  );
 
   /**
    * Handles incoming binary 64 KB chunk frames on the Receiver side.
@@ -635,9 +731,29 @@ export function usePeerTransfer() {
           );
           break;
         }
+
+        case 'PEER_DISCONNECT': {
+          if (frame.role === 'sender' || frame.role === 'receiver') {
+            handleRemoteDisconnect(frame.role);
+          }
+          break;
+        }
+
+        case 'HEARTBEAT_PING': {
+          void sendControlFrame({
+            type: 'HEARTBEAT_PONG',
+            ts: Date.now(),
+          });
+          break;
+        }
+
+        case 'HEARTBEAT_PONG': {
+          // Activity timestamp already refreshed on dc.onmessage
+          break;
+        }
       }
     },
-    [revokeActiveBlobUrl, sendControlFrame, updatePhase]
+    [handleRemoteDisconnect, revokeActiveBlobUrl, sendControlFrame, updatePhase]
   );
 
   /**
@@ -652,6 +768,20 @@ export function usePeerTransfer() {
       dc.onopen = () => {
         // Anti-Hijack Room Locking: immediately unsubscribe & disconnect from MQTT broker!
         signalingRef.current?.lockRoomAndDisconnect();
+        disconnectHandledRef.current = false;
+        lastPeerActivityRef.current = Date.now();
+        if (heartbeatIntervalRef.current) {
+          clearInterval(heartbeatIntervalRef.current);
+        }
+        heartbeatIntervalRef.current = setInterval(() => {
+          if (dc.readyState !== 'open') return;
+          if (Date.now() - lastPeerActivityRef.current > 8500) {
+            handleRemoteDisconnect();
+            return;
+          }
+          void sendControlFrame({ type: 'HEARTBEAT_PING', ts: Date.now() });
+        }, 3000);
+
         setErrorCode(null);
         setTelemetry((prev) => ({
           ...prev,
@@ -661,6 +791,7 @@ export function usePeerTransfer() {
       };
 
       dc.onmessage = async (event) => {
+        lastPeerActivityRef.current = Date.now();
         if (typeof event.data === 'string') {
           await handleIncomingControlFrame(event.data);
         } else if (event.data instanceof ArrayBuffer) {
@@ -672,25 +803,14 @@ export function usePeerTransfer() {
       };
 
       dc.onclose = () => {
-        if (receiverStateRef.current) {
-          receiverStateRef.current.disconnectedForResume = true;
-        }
-        setTelemetry((prev) => {
-          if (prev.phase === 'completed') return prev;
-          setErrorCode('peerDisconnected');
-          return {
-            ...prev,
-            phase: 'error',
-            roomLocked: false,
-          };
-        });
+        handleRemoteDisconnect();
       };
 
       dc.onerror = () => {
         // Handled alongside close / connectionstatechange
       };
     },
-    [handleIncomingBinaryChunk, handleIncomingControlFrame]
+    [handleIncomingBinaryChunk, handleIncomingControlFrame, handleRemoteDisconnect, sendControlFrame]
   );
 
   /**
@@ -719,19 +839,15 @@ export function usePeerTransfer() {
 
       pc.onconnectionstatechange = () => {
         const state = pc.connectionState;
-        if (state === 'disconnected' || state === 'failed') {
-          if (receiverStateRef.current) {
-            receiverStateRef.current.disconnectedForResume = true;
-          }
-          setTelemetry((prev) => {
-            if (prev.phase === 'completed') return prev;
-            setErrorCode('peerDisconnected');
-            return {
-              ...prev,
-              phase: 'error',
-              roomLocked: false,
-            };
-          });
+        if (state === 'disconnected' || state === 'failed' || state === 'closed') {
+          handleRemoteDisconnect();
+        }
+      };
+
+      pc.oniceconnectionstatechange = () => {
+        const iceState = pc.iceConnectionState;
+        if (iceState === 'disconnected' || iceState === 'failed' || iceState === 'closed') {
+          handleRemoteDisconnect();
         }
       };
 
@@ -749,7 +865,7 @@ export function usePeerTransfer() {
       peerConnRef.current = pc;
       return pc;
     },
-    [bindDataChannel]
+    [bindDataChannel, handleRemoteDisconnect]
   );
 
   /**
@@ -763,6 +879,7 @@ export function usePeerTransfer() {
         return;
       }
 
+      disconnectHandledRef.current = false;
       fullDisconnect();
       abortTransferFlagRef.current = false;
       setErrorCode(null);
@@ -994,10 +1111,10 @@ export function usePeerTransfer() {
     };
   }, [role, senderSeed, startSessionWithSeed, fullDisconnect]);
 
-  // Zero-trace cleanup on pagehide
+  // Zero-trace cleanup + peer disconnect notice on pagehide / beforeunload
   useEffect(() => {
-    const handlePageHide = () => {
-      fullDisconnect();
+    const handleUnload = () => {
+      void notifyPeerAndDisconnect(false);
       if (receiverStateRef.current) {
         void receiverStateRef.current.writer.abort();
         receiverStateRef.current = null;
@@ -1005,17 +1122,36 @@ export function usePeerTransfer() {
       senderAckMapRef.current.clear();
       setClipboardItems([]);
     };
-    window.addEventListener('pagehide', handlePageHide);
+    window.addEventListener('pagehide', handleUnload);
+    window.addEventListener('beforeunload', handleUnload);
     return () => {
-      window.removeEventListener('pagehide', handlePageHide);
+      window.removeEventListener('pagehide', handleUnload);
+      window.removeEventListener('beforeunload', handleUnload);
     };
-  }, [fullDisconnect]);
+  }, [notifyPeerAndDisconnect]);
 
   /**
-   * Switches between Sender and Receiver tabs and clears volatile clipboard/resume state.
+   * Disconnects gracefully after notifying the remote peer.
+   */
+  const disconnectGracefully = useCallback(async () => {
+    await notifyPeerAndDisconnect(true);
+    setErrorCode(null);
+    setIncomingOffer(null);
+    setTelemetry((prev) => ({
+      ...prev,
+      phase: 'idle',
+      roomLocked: false,
+    }));
+  }, [notifyPeerAndDisconnect]);
+
+  /**
+   * Switches between Sender and Receiver tabs, notifies peer if connected, and clears volatile state.
    */
   const switchRole = useCallback(
-    (nextRole: TransferRole) => {
+    async (nextRole: TransferRole) => {
+      if (dataChannelRef.current?.readyState === 'open') {
+        await notifyPeerAndDisconnect(true);
+      }
       setErrorCode(null);
       setIncomingOffer(null);
       setClipboardItems([]);
@@ -1027,13 +1163,16 @@ export function usePeerTransfer() {
       senderAckMapRef.current.clear();
       setRoleState(nextRole);
     },
-    [revokeActiveBlobUrl]
+    [notifyPeerAndDisconnect, revokeActiveBlobUrl]
   );
 
   /**
-   * Generates a fresh CSPRNG Seed for the Sender and reconnects to the new blind topic.
+   * Generates a fresh CSPRNG Seed for the Sender (notifying peer first if connected) and reconnects.
    */
-  const regenerateSenderSeed = useCallback(() => {
+  const regenerateSenderSeed = useCallback(async () => {
+    if (dataChannelRef.current?.readyState === 'open') {
+      await notifyPeerAndDisconnect(true);
+    }
     const fresh = generateRandomSeed();
     senderAckMapRef.current.clear();
     setClipboardItems([]);
@@ -1043,7 +1182,7 @@ export function usePeerTransfer() {
       receiverStateRef.current = null;
     }
     setSenderSeed(fresh);
-  }, [revokeActiveBlobUrl]);
+  }, [notifyPeerAndDisconnect, revokeActiveBlobUrl]);
 
   /**
    * Connects the Receiver using the entered Seed code (also supports reconnecting to resume).
@@ -1568,6 +1707,7 @@ export function usePeerTransfer() {
     setReceiverSeedInput,
     connectReceiver,
     reconnectCurrentSeed,
+    disconnectGracefully,
     fullDisconnect,
     queuedEntries,
     hasDirectoryInQueue,

@@ -43,6 +43,7 @@ export interface Translations {
     emptyQueueHint: string;
     startTransferBtn: string;
     waitingForPeer: string;
+    waitAgainBtn: string;
     roomLockedBadge: string;
     folderBadge: string;
     zipStreamReady: string;
@@ -53,6 +54,7 @@ export interface Translations {
     seedInputPlaceholder: string;
     seedFormatHint: string;
     connectBtn: string;
+    reconnectBtn: string;
     disconnectBtn: string;
     connectingBroker: string;
     waitingSenderOffer: string;
@@ -85,6 +87,7 @@ export interface Translations {
   };
   clipboard: {
     title: string;
+    toggleLabel: string;
     subtitle: string;
     placeholder: string;
     sendBtn: string;
@@ -112,6 +115,8 @@ export interface Translations {
     brokerAllFailed: string;
     authTagMismatch: string;
     peerDisconnected: string;
+    receiverDisconnected: string;
+    senderDisconnected: string;
     invalidSeed: string;
     fileWriteError: string;
     transferAborted: string;
@@ -125,6 +130,7 @@ export interface Translations {
     card3Desc: string;
   };
   footer: {
+    summary: string;
     stunStatus: string;
     brokerStatus: string;
     brokerConnected: string;
@@ -184,53 +190,54 @@ export const translations: Record<Language, Translations> = {
     },
     hero: {
       badge: 'BULUTSUZ • UÇTAN UCA ŞİFRELİ • SINIRSIZ BOYUT',
-      title: 'Dosyalarınızı Doğrudan Cihazdan Cihaza Gönderin',
-      subtitle:
-        'Hesap açmadan ve dosyalarınızı hiçbir yere yüklemeden, yalnızca ekrandaki bağlantı kodunu paylaşarak istediğiniz boyutta dosya veya klasör aktarın.',
-      tabSend: 'Dosya Gönder',
-      tabReceive: 'Dosya Al',
+      title: 'Doğrudan Dosya Paylaşımı',
+      subtitle: 'Buluta yüklemeden, tek kullanımlık kodla cihazdan cihaza gönderin.',
+      tabSend: 'Gönder',
+      tabReceive: 'Al',
       dropOverlayTitle: 'Dosya veya Klasörleri Buraya Bırakın',
       dropOverlaySubtitle: 'Bıraktığınız dosyalar gönderim listesine hemen eklenir',
     },
     sender: {
-      seedLabel: 'Tek Kullanımlık Bağlantı Kodunuz',
+      seedLabel: 'Bağlantı Kodu',
       seedHint:
-        'Bu kodu dosyayı alacak kişiyle paylaşın veya QR kodu telefon kamerasıyla okutun.',
-      copySeed: 'Kodu Kopyala',
+        'Bu kodu alıcıyla paylaşın veya QR kodu telefon kamerasıyla okutun.',
+      copySeed: 'Kopyala',
       copiedSeed: 'Kopyalandı!',
       regenerateSeed: 'Yeni Kod',
       showQr: 'QR Kod',
       hideQr: 'QR Gizle',
       qrModalTitle: 'Telefon veya Tabletten Bağlanın',
-      qrModalHint: 'Diğer cihazda "Dosya Al" sekmesini açıp bu kodu yazın.',
-      selectFilesTitle: 'Gönderilecek Dosya veya Klasörleri Seçin',
-      selectFilesSubtitle: 'Boyut sınırı yoktur • Klasörler tek paket halinde gönderilir',
+      qrModalHint: 'Diğer cihazda "Al" sekmesini açıp bu kodu yazın.',
+      selectFilesTitle: 'Dosya veya Klasör Seçin',
+      selectFilesSubtitle: 'Sürükleyip bırakın · Boyut sınırı yok',
       browseFilesBtn: 'Dosya Seç',
       browseFolderBtn: 'Klasör Seç',
-      queueTitle: 'Gönderilecek Öğeler',
-      clearQueue: 'Listeyi Temizle',
-      emptyQueueHint: 'Henüz dosya seçilmedi. Yukarıdaki butonları kullanabilir veya dosyaları sayfaya sürükleyebilirsiniz.',
+      queueTitle: 'Gönderilecekler',
+      clearQueue: 'Temizle',
+      emptyQueueHint: 'Henüz dosya seçilmedi.',
       startTransferBtn: 'Gönderimi Başlat',
-      waitingForPeer: 'Alıcının kodu girmesi bekleniyor...',
-      roomLockedBadge: 'Cihazlar Bağlandı',
+      waitingForPeer: 'Alıcı bekleniyor...',
+      waitAgainBtn: 'Yeniden Bekle',
+      roomLockedBadge: 'Bağlandı',
       folderBadge: 'Klasör Paketi',
-      zipStreamReady: 'Klasör Paketi Hazır',
-      filesSelected: 'dosya seçildi',
+      zipStreamReady: 'Klasör Paketi',
+      filesSelected: 'dosya',
     },
     receiver: {
-      seedInputLabel: 'Göndericinin Bağlantı Kodunu Girin',
-      seedInputPlaceholder: 'Örn: 8412-iron-forest-cloud',
-      seedFormatHint: 'Gönderici ekranda görünen 4 rakam ve 3 kelimelik kodu buraya yazın.',
+      seedInputLabel: 'Bağlantı Kodunu Girin',
+      seedInputPlaceholder: '8412-iron-forest-cloud',
+      seedFormatHint: 'Gönderici ekranda görünen kodu buraya yazın.',
       connectBtn: 'Bağlan',
+      reconnectBtn: 'Tekrar Bağlan',
       disconnectBtn: 'Bağlantıyı Kes',
       connectingBroker: 'Bağlantı hazırlanıyor...',
-      waitingSenderOffer: 'Gönderici cihaz aranıyor, lütfen bekleyin...',
-      connectedReady: 'Bağlantı kuruldu! Göndericinin aktarımı başlatması bekleniyor.',
-      incomingOfferTitle: 'Gelen Dosya Var',
-      acceptSaveDiskBtn: 'Kayıt Yerini Seç ve İndir',
+      waitingSenderOffer: 'Gönderici bekleniyor...',
+      connectedReady: 'Bağlandı · Göndericinin dosya göndermesi bekleniyor.',
+      incomingOfferTitle: 'Gelen Dosya',
+      acceptSaveDiskBtn: 'Konum Seç ve İndir',
       acceptRamFallbackBtn: 'Kabul Et ve İndir',
       autoStreamNotice:
-        'Büyük dosyalar bilgisayarınızın belleğini doldurmadan doğrudan seçtiğiniz klasöre kaydedilir.',
+        'Büyük dosyalar bellek doldurmadan doğrudan seçtiğiniz klasöre kaydedilir.',
       invalidSeedWarning: 'Lütfen kodu eksiksiz girin (örn: 8412-iron-forest-cloud).',
     },
     telemetry: {
@@ -255,13 +262,14 @@ export const translations: Record<Language, Translations> = {
     },
     clipboard: {
       title: 'Hızlı Metin & Not Paylaşımı',
+      toggleLabel: 'Metin / Link Paylaş',
       subtitle: 'Bağlı cihaza anında şifreli metin, bağlantı veya not gönderin',
-      placeholder: 'Karşı cihaza göndermek istediğiniz metni veya bağlantıyı buraya yazın...',
+      placeholder: 'Mesaj veya bağlantı yazın...',
       sendBtn: 'Gönder',
       copyBtn: 'Kopyala',
       copiedBtn: 'Kopyalandı',
       clearBtn: 'Temizle',
-      emptyState: 'Henüz paylaşılan bir metin yok.',
+      emptyState: 'Henüz metin yok.',
       sentTag: 'Gönderildi',
       receivedTag: 'Gelen',
       encryptedBadge: 'Şifreli',
@@ -269,12 +277,12 @@ export const translations: Record<Language, Translations> = {
     status: {
       idle: 'Hazır',
       connecting_broker: 'Hazırlanıyor...',
-      waiting_peer: 'Karşı Cihaz Bekleniyor',
-      handshaking: 'Cihazlar Eşleşiyor...',
-      connected: 'Cihazlar Bağlandı',
-      transferring: 'Dosya Aktarılıyor...',
-      paused_backpressure: 'Hız Dengeleniyor...',
-      completed: 'Aktarım Tamamlandı',
+      waiting_peer: 'Alıcı Bekleniyor',
+      handshaking: 'Eşleşiyor...',
+      connected: 'Bağlandı',
+      transferring: 'Aktarılıyor...',
+      paused_backpressure: 'Dengeleniyor...',
+      completed: 'Tamamlandı',
       error: 'Bağlantı Kesildi',
     },
     errors: {
@@ -282,6 +290,8 @@ export const translations: Record<Language, Translations> = {
       brokerAllFailed: 'Bağlantı servisine ulaşılamadı. Lütfen internet bağlantınızı kontrol edin.',
       authTagMismatch: 'Dosya bütünlüğü doğrulanamadı, güvenliğinizi korumak için aktarım durduruldu.',
       peerDisconnected: 'Karşı cihazla bağlantı koptu. Aynı kodla tekrar bağlanarak kaldığınız yerden devam edebilirsiniz.',
+      receiverDisconnected: 'Alıcı bağlantıyı kesti. Aynı kodla yeniden bağlanmasını bekleyebilir veya yeni kod oluşturabilirsiniz.',
+      senderDisconnected: 'Gönderici bağlantıyı kesti.',
       invalidSeed: 'Lütfen 4 rakam ve 3 kelimeden oluşan bağlantı kodunu eksiksiz yazın (örn: 8412-iron-forest-cloud).',
       fileWriteError: 'Dosya kaydetme işlemi iptal edildi.',
       transferAborted: 'Aktarım durduruldu.',
@@ -298,6 +308,7 @@ export const translations: Record<Language, Translations> = {
         'Çok büyük videoları veya yüzlerce dosyalık klasörleri beklemeye gerek kalmadan, tek seferde kolayca gönderebilirsiniz.',
     },
     footer: {
+      summary: 'Bulutsuz · Uçtan Uca Şifreli · Çerezsiz',
       stunStatus: 'Doğrudan Aktarım: Hazır',
       brokerStatus: 'Eşleşme Servisi:',
       brokerConnected: 'Aktif',
@@ -365,53 +376,54 @@ export const translations: Record<Language, Translations> = {
     },
     hero: {
       badge: 'NO CLOUD • END-TO-END ENCRYPTED • NO SIZE LIMITS',
-      title: 'Send Files Directly Between Devices',
-      subtitle:
-        'Share files and folders of any size directly from your browser using a one-time connection code — no accounts, no cloud uploads, no waiting.',
-      tabSend: 'Send Files',
-      tabReceive: 'Receive Files',
+      title: 'Direct File Sharing',
+      subtitle: 'Send files directly between devices using a one-time code — no cloud.',
+      tabSend: 'Send',
+      tabReceive: 'Receive',
       dropOverlayTitle: 'Drop Files or Folders Here',
       dropOverlaySubtitle: 'Your items will be added to the transfer list right away',
     },
     sender: {
-      seedLabel: 'Your One-Time Connection Code',
+      seedLabel: 'Connection Code',
       seedHint:
-        'Share this code with the recipient or let them scan the QR code with their phone.',
-      copySeed: 'Copy Code',
+        'Share this code with the recipient or scan the QR code.',
+      copySeed: 'Copy',
       copiedSeed: 'Copied!',
       regenerateSeed: 'New Code',
       showQr: 'QR Code',
       hideQr: 'Hide QR',
       qrModalTitle: 'Connect from Phone or Tablet',
-      qrModalHint: 'Open the "Receive Files" tab on the other device and enter this code.',
-      selectFilesTitle: 'Choose Files or Folders to Send',
-      selectFilesSubtitle: 'No size limits • Folders are automatically bundled into a single download',
+      qrModalHint: 'Open the "Receive" tab on the other device and enter this code.',
+      selectFilesTitle: 'Choose Files or Folders',
+      selectFilesSubtitle: 'Drag & drop anywhere · No size limit',
       browseFilesBtn: 'Select Files',
       browseFolderBtn: 'Select Folder',
       queueTitle: 'Selected Items',
-      clearQueue: 'Clear List',
-      emptyQueueHint: 'No files selected yet. Use the buttons above or drag and drop files anywhere on the page.',
+      clearQueue: 'Clear',
+      emptyQueueHint: 'No files selected yet.',
       startTransferBtn: 'Start Sending',
-      waitingForPeer: 'Waiting for recipient to enter the code...',
-      roomLockedBadge: 'Devices Connected',
+      waitingForPeer: 'Waiting for receiver...',
+      waitAgainBtn: 'Wait Again',
+      roomLockedBadge: 'Connected',
       folderBadge: 'Folder Bundle',
-      zipStreamReady: 'Folder Package Ready',
-      filesSelected: 'files selected',
+      zipStreamReady: 'Folder Package',
+      filesSelected: 'files',
     },
     receiver: {
-      seedInputLabel: 'Enter Sender Connection Code',
-      seedInputPlaceholder: 'e.g. 8412-iron-forest-cloud',
-      seedFormatHint: 'Type the 4-digit and 3-word code shown on the sender screen.',
+      seedInputLabel: 'Enter Connection Code',
+      seedInputPlaceholder: '8412-iron-forest-cloud',
+      seedFormatHint: 'Type the code shown on the sender screen.',
       connectBtn: 'Connect',
+      reconnectBtn: 'Reconnect',
       disconnectBtn: 'Disconnect',
       connectingBroker: 'Preparing connection...',
-      waitingSenderOffer: 'Looking for sender device, please wait...',
-      connectedReady: 'Connected! Waiting for the sender to start the transfer.',
+      waitingSenderOffer: 'Looking for sender...',
+      connectedReady: 'Connected · Waiting for sender to start transfer.',
       incomingOfferTitle: 'Incoming File',
-      acceptSaveDiskBtn: 'Choose Save Location & Download',
+      acceptSaveDiskBtn: 'Choose Location & Save',
       acceptRamFallbackBtn: 'Accept & Download',
       autoStreamNotice:
-        'Large files are saved directly to your chosen folder without filling up your device memory.',
+        'Large files are saved directly to your chosen folder without filling up memory.',
       invalidSeedWarning: 'Please enter the complete connection code (e.g. 8412-iron-forest-cloud).',
     },
     telemetry: {
@@ -436,13 +448,14 @@ export const translations: Record<Language, Translations> = {
     },
     clipboard: {
       title: 'Quick Text & Note Sharing',
+      toggleLabel: 'Share Text / Link',
       subtitle: 'Instantly send encrypted text, links, or notes to the connected device',
-      placeholder: 'Type or paste a message or link to send to the other device...',
+      placeholder: 'Type a message or link...',
       sendBtn: 'Send',
       copyBtn: 'Copy',
       copiedBtn: 'Copied',
       clearBtn: 'Clear',
-      emptyState: 'No messages shared yet.',
+      emptyState: 'No messages yet.',
       sentTag: 'Sent',
       receivedTag: 'Received',
       encryptedBadge: 'Encrypted',
@@ -450,10 +463,10 @@ export const translations: Record<Language, Translations> = {
     status: {
       idle: 'Ready',
       connecting_broker: 'Preparing...',
-      waiting_peer: 'Waiting for Device',
-      handshaking: 'Pairing Devices...',
-      connected: 'Devices Connected',
-      transferring: 'Transferring File...',
+      waiting_peer: 'Waiting for Receiver',
+      handshaking: 'Pairing...',
+      connected: 'Connected',
+      transferring: 'Transferring...',
       paused_backpressure: 'Adjusting Speed...',
       completed: 'Completed',
       error: 'Disconnected',
@@ -463,6 +476,8 @@ export const translations: Record<Language, Translations> = {
       brokerAllFailed: 'Could not reach the pairing service. Please check your internet connection.',
       authTagMismatch: 'File verification failed; the transfer was stopped to protect your security.',
       peerDisconnected: 'Connection lost. Reconnect with the same code to resume where you left off.',
+      receiverDisconnected: 'The receiver disconnected. You can wait for them to reconnect with the same code or generate a new code.',
+      senderDisconnected: 'The sender disconnected.',
       invalidSeed: 'Please enter the complete 4-digit and 3-word code (e.g. 8412-iron-forest-cloud).',
       fileWriteError: 'File save was cancelled.',
       transferAborted: 'Transfer cancelled.',
@@ -479,6 +494,7 @@ export const translations: Record<Language, Translations> = {
         'Send huge videos or entire folders in one go without waiting for slow cloud uploads.',
     },
     footer: {
+      summary: 'No Cloud · End-to-End Encrypted · No Cookies',
       stunStatus: 'Direct Transfer: Ready',
       brokerStatus: 'Pairing Service:',
       brokerConnected: 'Online',

@@ -69,52 +69,52 @@
       },
       hero: {
         badge: 'BULUTSUZ • UÇTAN UCA ŞİFRELİ • SINIRSIZ BOYUT',
-        title: 'Dosyalarınızı Doğrudan Cihazdan Cihaza Gönderin',
-        subtitle:
-          'Hesap açmadan ve dosyalarınızı hiçbir yere yüklemeden, yalnızca ekrandaki bağlantı kodunu paylaşarak istediğiniz boyutta dosya veya klasör aktarın.',
-        tabSend: 'Dosya Gönder',
-        tabReceive: 'Dosya Al',
+        title: 'Doğrudan Dosya Paylaşımı',
+        subtitle: 'Buluta yüklemeden, tek kullanımlık kodla cihazdan cihaza gönderin.',
+        tabSend: 'Gönder',
+        tabReceive: 'Al',
         dropOverlayTitle: 'Dosya veya Klasörleri Buraya Bırakın',
         dropOverlaySubtitle: 'Bıraktığınız dosyalar gönderim listesine hemen eklenir',
       },
       sender: {
-        seedLabel: 'Tek Kullanımlık Bağlantı Kodunuz',
-        seedHint:
-          'Bu kodu dosyayı alacak kişiyle paylaşın veya QR kodu telefon kamerasıyla okutun.',
-        copySeed: 'Kodu Kopyala',
+        seedLabel: 'Bağlantı Kodu',
+        seedHint: 'Bu kodu alıcıyla paylaşın veya QR kodu telefon kamerasıyla okutun.',
+        copySeed: 'Kopyala',
         copiedSeed: 'Kopyalandı!',
         regenerateSeed: 'Yeni Kod',
         showQr: 'QR Kod',
         hideQr: 'QR Gizle',
         qrModalTitle: 'Telefon veya Tabletten Bağlanın',
-        qrModalHint: 'Diğer cihazda "Dosya Al" sekmesini açıp bu kodu yazın.',
-        selectFilesTitle: 'Gönderilecek Dosya veya Klasörleri Seçin',
-        selectFilesSubtitle: 'Boyut sınırı yoktur • Klasörler tek paket halinde gönderilir',
+        qrModalHint: 'Diğer cihazda "Al" sekmesini açıp bu kodu yazın.',
+        selectFilesTitle: 'Dosya veya Klasör Seçin',
+        selectFilesSubtitle: 'Sürükleyip bırakın · Boyut sınırı yok',
         browseFilesBtn: 'Dosya Seç',
         browseFolderBtn: 'Klasör Seç',
-        queueTitle: 'Gönderilecek Öğeler',
-        clearQueue: 'Listeyi Temizle',
-        emptyQueueHint: 'Henüz dosya seçilmedi. Yukarıdaki butonları kullanabilir veya dosyaları sayfaya sürükleyebilirsiniz.',
+        queueTitle: 'Gönderilecekler',
+        clearQueue: 'Temizle',
+        emptyQueueHint: 'Henüz dosya seçilmedi.',
         startTransferBtn: 'Gönderimi Başlat',
-        waitingForPeer: 'Alıcının kodu girmesi bekleniyor...',
-        roomLockedBadge: 'Cihazlar Bağlandı',
-        zipStreamReady: 'Klasör Paketi Hazır',
-        filesSelected: 'dosya seçildi',
+        waitingForPeer: 'Alıcı bekleniyor...',
+        waitAgainBtn: 'Yeniden Bekle',
+        roomLockedBadge: 'Bağlandı',
+        zipStreamReady: 'Klasör Paketi',
+        filesSelected: 'dosya',
       },
       receiver: {
-        seedInputLabel: 'Göndericinin Bağlantı Kodunu Girin',
-        seedInputPlaceholder: 'Örn: 8412-iron-forest-cloud',
-        seedFormatHint: 'Gönderici ekranda görünen 4 rakam ve 3 kelimelik kodu buraya yazın.',
+        seedInputLabel: 'Bağlantı Kodunu Girin',
+        seedInputPlaceholder: '8412-iron-forest-cloud',
+        seedFormatHint: 'Gönderici ekranda görünen kodu buraya yazın.',
         connectBtn: 'Bağlan',
+        reconnectBtn: 'Tekrar Bağlan',
         disconnectBtn: 'Bağlantıyı Kes',
         connectingBroker: 'Bağlantı hazırlanıyor...',
-        waitingSenderOffer: 'Gönderici cihaz aranıyor, lütfen bekleyin...',
-        connectedReady: 'Bağlantı kuruldu! Göndericinin aktarımı başlatması bekleniyor.',
-        incomingOfferTitle: 'Gelen Dosya Var',
-        acceptSaveDiskBtn: 'Kayıt Yerini Seç ve İndir',
+        waitingSenderOffer: 'Gönderici bekleniyor...',
+        connectedReady: 'Bağlandı · Göndericinin dosya göndermesi bekleniyor.',
+        incomingOfferTitle: 'Gelen Dosya',
+        acceptSaveDiskBtn: 'Konum Seç ve İndir',
         acceptRamFallbackBtn: 'Kabul Et ve İndir',
         autoStreamNotice:
-          'Büyük dosyalar bilgisayarınızın belleğini doldurmadan doğrudan seçtiğiniz klasöre kaydedilir.',
+          'Büyük dosyalar bellek doldurmadan doğrudan seçtiğiniz klasöre kaydedilir.',
       },
       telemetry: {
         panelTitle: 'Aktarım Durumu',
@@ -129,7 +129,7 @@
         chunksAckedLabel: 'Tamamlanan Parça',
         topicHashLabel: 'Bağlantı Kanalı',
         fingerprintLabel: 'Güvenlik Kodu',
-        resumedFromChunk: 'Bağlantı yenilendi — Kaldığı yerden devam ediyor: #',
+        resumedFromChunk: 'Bağlantı yenilendi — Kaldığı yerden devam ediyor (#',
         pauseNoticeBackpressure: 'İnternet hızına göre akış dengeleniyor...',
         cancelTransfer: 'Aktarımı İptal Et',
         downloadAgain: 'Dosyayı Kaydet',
@@ -137,12 +137,13 @@
       },
       clipboard: {
         title: 'Hızlı Metin & Not Paylaşımı',
-        placeholder: 'Karşı cihaza göndermek istediğiniz metni veya bağlantıyı buraya yazın...',
+        toggleLabel: 'Metin / Link Paylaş',
+        placeholder: 'Mesaj veya bağlantı yazın...',
         sendBtn: 'Gönder',
         copyBtn: 'Kopyala',
         copiedBtn: 'Kopyalandı',
         clearBtn: 'Temizle',
-        emptyState: 'Henüz paylaşılan bir metin yok.',
+        emptyState: 'Henüz metin yok.',
         sentTag: 'Gönderildi',
         receivedTag: 'Gelen',
         encryptedBadge: 'Şifreli',
@@ -150,12 +151,12 @@
       status: {
         idle: 'Hazır',
         connecting_broker: 'Hazırlanıyor...',
-        waiting_peer: 'Karşı Cihaz Bekleniyor',
-        handshaking: 'Cihazlar Eşleşiyor...',
-        connected: 'Cihazlar Bağlandı',
-        transferring: 'Dosya Aktarılıyor...',
-        paused_backpressure: 'Hız Dengeleniyor...',
-        completed: 'Aktarım Tamamlandı',
+        waiting_peer: 'Alıcı Bekleniyor',
+        handshaking: 'Eşleşiyor...',
+        connected: 'Bağlandı',
+        transferring: 'Aktarılıyor...',
+        paused_backpressure: 'Dengeleniyor...',
+        completed: 'Tamamlandı',
         error: 'Bağlantı Kesildi',
       },
       errors: {
@@ -163,6 +164,8 @@
         brokerAllFailed: 'Bağlantı servisine ulaşılamadı. Lütfen internet bağlantınızı kontrol edin.',
         authTagMismatch: 'Dosya bütünlüğü doğrulanamadı, güvenliğinizi korumak için aktarım durduruldu.',
         peerDisconnected: 'Karşı cihazla bağlantı koptu. Aynı kodla tekrar bağlanarak kaldığınız yerden devam edebilirsiniz.',
+        receiverDisconnected: 'Alıcı bağlantıyı kesti. Aynı kodla yeniden bağlanmasını bekleyebilir veya yeni kod oluşturabilirsiniz.',
+        senderDisconnected: 'Gönderici bağlantıyı kesti.',
         invalidSeed: 'Lütfen 4 rakam ve 3 kelimeden oluşan bağlantı kodunu eksiksiz yazın (örn: 8412-iron-forest-cloud).',
         fileWriteError: 'Dosya kaydetme işlemi iptal edildi.',
         transferAborted: 'Aktarım durduruldu.',
@@ -179,6 +182,7 @@
           'Çok büyük videoları veya yüzlerce dosyalık klasörleri beklemeye gerek kalmadan, tek seferde kolayca gönderebilirsiniz.',
       },
       footer: {
+        summary: 'Bulutsuz · Uçtan Uca Şifreli · Çerezsiz',
         stunStatus: 'Doğrudan Aktarım: Hazır',
         brokerStatus: 'Eşleşme Servisi:',
         brokerConnected: 'Aktif',
@@ -195,7 +199,7 @@
             'Sayfa açıldığında size özel rastgele bir bağlantı kodu oluşturulur. Bu kodu dosyayı göndereceğiniz kişiyle paylaşın.',
           step2Title: '2. Alıcı Kodu Girsin',
           step2Desc:
-            'Alıcı kendi cihazında "Dosya Al" sekmesini açıp bu kodu yazar. İki cihaz saniyeler içinde birbirini bulur ve eşleşir.',
+            'Alıcı kendi cihazında "Al" sekmesini açıp bu kodu yazar. İki cihaz saniyeler içinde birbirini bulur ve eşleşir.',
           step3Title: '3. Oda Otomatik Kilitlenir',
           step3Desc:
             'Cihazlarınız eşleştiği anda bağlantı kilitlenir; böylece üçüncü bir kişinin araya girmesi engellenir.',
@@ -242,52 +246,52 @@
       },
       hero: {
         badge: 'NO CLOUD • END-TO-END ENCRYPTED • NO SIZE LIMITS',
-        title: 'Send Files Directly Between Devices',
-        subtitle:
-          'Share files and folders of any size directly from your browser using a one-time connection code — no accounts, no cloud uploads, no waiting.',
-        tabSend: 'Send Files',
-        tabReceive: 'Receive Files',
+        title: 'Direct File Sharing',
+        subtitle: 'Send files directly between devices using a one-time code — no cloud.',
+        tabSend: 'Send',
+        tabReceive: 'Receive',
         dropOverlayTitle: 'Drop Files or Folders Here',
         dropOverlaySubtitle: 'Your items will be added to the transfer list right away',
       },
       sender: {
-        seedLabel: 'Your One-Time Connection Code',
-        seedHint:
-          'Share this code with the recipient or let them scan the QR code with their phone.',
-        copySeed: 'Copy Code',
+        seedLabel: 'Connection Code',
+        seedHint: 'Share this code with the recipient or scan the QR code.',
+        copySeed: 'Copy',
         copiedSeed: 'Copied!',
         regenerateSeed: 'New Code',
         showQr: 'QR Code',
         hideQr: 'Hide QR',
         qrModalTitle: 'Connect from Phone or Tablet',
-        qrModalHint: 'Open the "Receive Files" tab on the other device and enter this code.',
-        selectFilesTitle: 'Choose Files or Folders to Send',
-        selectFilesSubtitle: 'No size limits • Folders are automatically bundled into a single download',
+        qrModalHint: 'Open the "Receive" tab on the other device and enter this code.',
+        selectFilesTitle: 'Choose Files or Folders',
+        selectFilesSubtitle: 'Drag & drop anywhere · No size limit',
         browseFilesBtn: 'Select Files',
         browseFolderBtn: 'Select Folder',
         queueTitle: 'Selected Items',
-        clearQueue: 'Clear List',
-        emptyQueueHint: 'No files selected yet. Use the buttons above or drag and drop files anywhere on the page.',
+        clearQueue: 'Clear',
+        emptyQueueHint: 'No files selected yet.',
         startTransferBtn: 'Start Sending',
-        waitingForPeer: 'Waiting for recipient to enter the code...',
-        roomLockedBadge: 'Devices Connected',
-        zipStreamReady: 'Folder Package Ready',
-        filesSelected: 'files selected',
+        waitingForPeer: 'Waiting for receiver...',
+        waitAgainBtn: 'Wait Again',
+        roomLockedBadge: 'Connected',
+        zipStreamReady: 'Folder Package',
+        filesSelected: 'files',
       },
       receiver: {
-        seedInputLabel: 'Enter Sender Connection Code',
-        seedInputPlaceholder: 'e.g. 8412-iron-forest-cloud',
-        seedFormatHint: 'Type the 4-digit and 3-word code shown on the sender screen.',
+        seedInputLabel: 'Enter Connection Code',
+        seedInputPlaceholder: '8412-iron-forest-cloud',
+        seedFormatHint: 'Type the code shown on the sender screen.',
         connectBtn: 'Connect',
+        reconnectBtn: 'Reconnect',
         disconnectBtn: 'Disconnect',
         connectingBroker: 'Preparing connection...',
-        waitingSenderOffer: 'Looking for sender device, please wait...',
-        connectedReady: 'Connected! Waiting for the sender to start the transfer.',
+        waitingSenderOffer: 'Looking for sender...',
+        connectedReady: 'Connected · Waiting for sender to start transfer.',
         incomingOfferTitle: 'Incoming File',
-        acceptSaveDiskBtn: 'Choose Save Location & Download',
+        acceptSaveDiskBtn: 'Choose Location & Save',
         acceptRamFallbackBtn: 'Accept & Download',
         autoStreamNotice:
-          'Large files are saved directly to your chosen folder without filling up your device memory.',
+          'Large files are saved directly to your chosen folder without filling up memory.',
       },
       telemetry: {
         panelTitle: 'Transfer Status',
@@ -302,7 +306,7 @@
         chunksAckedLabel: 'Completed Parts',
         topicHashLabel: 'Channel',
         fingerprintLabel: 'Security Code',
-        resumedFromChunk: 'Reconnected — Resuming from where it left off: #',
+        resumedFromChunk: 'Reconnected — Resuming from where it left off (#',
         pauseNoticeBackpressure: 'Adjusting to network speed...',
         cancelTransfer: 'Cancel Transfer',
         downloadAgain: 'Save File',
@@ -310,12 +314,13 @@
       },
       clipboard: {
         title: 'Quick Text & Note Sharing',
-        placeholder: 'Type or paste a message or link to send to the other device...',
+        toggleLabel: 'Share Text / Link',
+        placeholder: 'Type a message or link...',
         sendBtn: 'Send',
         copyBtn: 'Copy',
         copiedBtn: 'Copied',
         clearBtn: 'Clear',
-        emptyState: 'No messages shared yet.',
+        emptyState: 'No messages yet.',
         sentTag: 'Sent',
         receivedTag: 'Received',
         encryptedBadge: 'Encrypted',
@@ -323,10 +328,10 @@
       status: {
         idle: 'Ready',
         connecting_broker: 'Preparing...',
-        waiting_peer: 'Waiting for Device',
-        handshaking: 'Pairing Devices...',
-        connected: 'Devices Connected',
-        transferring: 'Transferring File...',
+        waiting_peer: 'Waiting for Receiver',
+        handshaking: 'Pairing...',
+        connected: 'Connected',
+        transferring: 'Transferring...',
         paused_backpressure: 'Adjusting Speed...',
         completed: 'Completed',
         error: 'Disconnected',
@@ -336,6 +341,8 @@
         brokerAllFailed: 'Could not reach the pairing service. Please check your internet connection.',
         authTagMismatch: 'File verification failed; the transfer was stopped to protect your security.',
         peerDisconnected: 'Connection lost. Reconnect with the same code to resume where you left off.',
+        receiverDisconnected: 'The receiver disconnected. You can wait for them to reconnect with the same code or generate a new code.',
+        senderDisconnected: 'The sender disconnected.',
         invalidSeed: 'Please enter the complete 4-digit and 3-word code (e.g. 8412-iron-forest-cloud).',
         fileWriteError: 'File save was cancelled.',
         transferAborted: 'Transfer cancelled.',
@@ -352,6 +359,7 @@
           'Send huge videos or entire folders in one go without waiting for slow cloud uploads.',
       },
       footer: {
+        summary: 'No Cloud · End-to-End Encrypted · No Cookies',
         stunStatus: 'Direct Transfer: Ready',
         brokerStatus: 'Pairing Service:',
         brokerConnected: 'Online',
@@ -368,7 +376,7 @@
             'When you open the page, a unique random code is created for you. Share this code with the person you want to send files to.',
           step2Title: '2. Recipient Enters the Code',
           step2Desc:
-            'The recipient opens the "Receive Files" tab on their device and enters the code. Both devices pair within seconds.',
+            'The recipient opens the "Receive" tab on their device and enters the code. Both devices pair within seconds.',
           step3Title: '3. Session Locks Automatically',
           step3Desc:
             'As soon as your devices connect, the room locks so no one else can join the transfer.',
@@ -1597,6 +1605,7 @@
     darkMode: true,
     howItWorksOpen: false,
     securityOpen: false,
+    notesOpen: false,
     role: 'sender',
     senderSeed: generateRandomSeed(),
     receiverSeedInput: '',
@@ -1651,6 +1660,9 @@
   let pendingSenderOfferId = null;
   let activeBlobUrl = null;
   let acceptResolver = null;
+  let heartbeatInterval = null;
+  let lastPeerActivityTs = 0;
+  let disconnectHandled = false;
   const speedTracker = { lastTimestamp: 0, lastBytes: 0, smoothedSpeed: 0 };
 
   function revokeActiveBlobUrl() {
@@ -1689,6 +1701,10 @@
   }
 
   function cleanupPeerConnectionOnly() {
+    if (heartbeatInterval) {
+      clearInterval(heartbeatInterval);
+      heartbeatInterval = null;
+    }
     if (dataChannel) {
       try {
         dataChannel.onopen = null;
@@ -1704,6 +1720,7 @@
         peerConn.onicecandidate = null;
         peerConn.ondatachannel = null;
         peerConn.onconnectionstatechange = null;
+        peerConn.oniceconnectionstatechange = null;
         peerConn.close();
       } catch (_e) {}
       peerConn = null;
@@ -1728,6 +1745,64 @@
     revokeActiveBlobUrl();
     state.brokerStatus.connected = false;
     state.brokerStatus.locked = false;
+  }
+
+  function handleRemoteDisconnect(peerRole) {
+    if (disconnectHandled) return;
+    disconnectHandled = true;
+
+    abortTransferFlag = true;
+    pendingSenderOfferId = null;
+    if (acceptResolver) {
+      const r = acceptResolver;
+      acceptResolver = null;
+      r({ storageMode: 'ram', resumeFromChunk: 0 });
+    }
+    if (receiverActiveState) {
+      receiverActiveState.disconnectedForResume = true;
+    }
+
+    cleanupPeerConnectionOnly();
+    if (signalingChannel) {
+      signalingChannel.destroy();
+      signalingChannel = null;
+    }
+    state.incomingOffer = null;
+    state.brokerStatus.connected = false;
+    state.brokerStatus.locked = false;
+
+    state.errorCode =
+      state.role === 'sender'
+        ? 'receiverDisconnected'
+        : peerRole === 'sender'
+        ? 'senderDisconnected'
+        : 'peerDisconnected';
+    state.telemetry.phase = 'error';
+    state.telemetry.roomLocked = false;
+    renderApp();
+  }
+
+  async function notifyPeerAndDisconnect(waitFlush) {
+    if (waitFlush === undefined) waitFlush = true;
+    disconnectHandled = true;
+    if (heartbeatInterval) {
+      clearInterval(heartbeatInterval);
+      heartbeatInterval = null;
+    }
+    if (dataChannel && dataChannel.readyState === 'open' && derivedMaterial) {
+      try {
+        await sendControlFrame({
+          type: 'PEER_DISCONNECT',
+          role: state.role,
+        });
+        if (waitFlush) {
+          await new Promise((resolve) => setTimeout(resolve, 80));
+        }
+      } catch (_e) {
+        // ignore
+      }
+    }
+    fullDisconnect();
   }
 
   async function sendControlFrame(frame) {
@@ -2003,7 +2078,16 @@
       if (state.clipboardItems.length > SITE_CONFIG.maxClipboardItems) {
         state.clipboardItems.length = SITE_CONFIG.maxClipboardItems;
       }
+      state.notesOpen = true;
       renderApp();
+    } else if (frame.type === 'PEER_DISCONNECT') {
+      if (frame.role === 'sender' || frame.role === 'receiver') {
+        handleRemoteDisconnect(frame.role);
+      }
+    } else if (frame.type === 'HEARTBEAT_PING') {
+      sendControlFrame({ type: 'HEARTBEAT_PONG', ts: Date.now() }).catch(() => {});
+    } else if (frame.type === 'HEARTBEAT_PONG') {
+      // Activity timestamp already refreshed on dc.onmessage
     }
   }
 
@@ -2014,6 +2098,20 @@
 
     dc.onopen = () => {
       if (signalingChannel) signalingChannel.lockRoomAndDisconnect();
+      disconnectHandled = false;
+      lastPeerActivityTs = Date.now();
+      if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+      }
+      heartbeatInterval = setInterval(() => {
+        if (dc.readyState !== 'open') return;
+        if (Date.now() - lastPeerActivityTs > 8500) {
+          handleRemoteDisconnect();
+          return;
+        }
+        sendControlFrame({ type: 'HEARTBEAT_PING', ts: Date.now() }).catch(() => {});
+      }, 3000);
+
       state.errorCode = null;
       state.telemetry.phase = 'connected';
       state.telemetry.roomLocked = true;
@@ -2021,6 +2119,7 @@
     };
 
     dc.onmessage = async (event) => {
+      lastPeerActivityTs = Date.now();
       if (typeof event.data === 'string') {
         await handleIncomingControlFrame(event.data);
       } else if (event.data instanceof ArrayBuffer) {
@@ -2031,13 +2130,7 @@
     };
 
     dc.onclose = () => {
-      if (receiverActiveState) receiverActiveState.disconnectedForResume = true;
-      if (state.telemetry.phase !== 'completed') {
-        state.errorCode = 'peerDisconnected';
-        state.telemetry.phase = 'error';
-        state.telemetry.roomLocked = false;
-        renderApp();
-      }
+      handleRemoteDisconnect();
     };
   }
 
@@ -2060,12 +2153,15 @@
 
     pc.onconnectionstatechange = () => {
       const st = pc.connectionState;
-      if ((st === 'disconnected' || st === 'failed') && state.telemetry.phase !== 'completed') {
-        if (receiverActiveState) receiverActiveState.disconnectedForResume = true;
-        state.errorCode = 'peerDisconnected';
-        state.telemetry.phase = 'error';
-        state.telemetry.roomLocked = false;
-        renderApp();
+      if (st === 'disconnected' || st === 'failed' || st === 'closed') {
+        handleRemoteDisconnect();
+      }
+    };
+
+    pc.oniceconnectionstatechange = () => {
+      const iceSt = pc.iceConnectionState;
+      if (iceSt === 'disconnected' || iceSt === 'failed' || iceSt === 'closed') {
+        handleRemoteDisconnect();
       }
     };
 
@@ -2088,6 +2184,7 @@
     }
 
     fullDisconnect();
+    disconnectHandled = false;
     abortTransferFlag = false;
     state.errorCode = null;
     state.telemetry.phase = 'connecting_broker';
@@ -2526,9 +2623,47 @@
   // ============================================================================
   // 8. UI RENDERING (Navbar, TransferWorkspace, Modals, Footer)
   // ============================================================================
+  function svgIcon(inner, size, color) {
+    const s = size || 16;
+    const c = color || 'currentColor';
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;display:inline-block;vertical-align:middle;" aria-hidden="true">${inner}</svg>`;
+  }
+
+  const UI_ICONS = {
+    help: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>',
+    shield: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
+    moon: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
+    send: '<path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/>',
+    download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>',
+    copy: '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
+    check: '<path d="M20 6 9 17l-5-5"/>',
+    refresh: '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>',
+    qr: '<rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/>',
+    upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/>',
+    file: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
+    folder: '<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/><path d="M12 10v6"/><path d="m9 13 3-3 3 3"/>',
+    archive: '<path d="M10 12v-1"/><path d="M10 18v-2"/><path d="M10 7V6"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M15.5 22H18a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v16a2 2 0 0 0 .274 1.01"/><circle cx="10" cy="20" r="2"/>',
+    trash: '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>',
+    play: '<polygon points="6 3 20 12 6 21 6 3"/>',
+    xCircle: '<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/>',
+    alert: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+    rotate: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>',
+    hardDrive: '<line x1="22" x2="2" y1="12" y2="12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><line x1="6" x2="6.01" y1="16" y2="16"/><line x1="10" x2="10.01" y1="16" y2="16"/>',
+    message: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+    chevronDown: '<path d="m6 9 6 6 6-6"/>',
+    chevronUp: '<path d="m18 15-6-6-6 6"/>',
+  };
+
   function renderTelemetryOnly() {
     const panel = document.getElementById('zs-telemetry-panel');
     if (panel) {
+      const tm = state.telemetry;
+      const show =
+        tm.phase === 'transferring' ||
+        tm.phase === 'paused_backpressure' ||
+        tm.phase === 'completed';
+      panel.style.display = show ? 'block' : 'none';
       panel.innerHTML = buildTelemetryCardInnerHtml();
       bindTelemetryEvents();
     }
@@ -2537,117 +2672,66 @@
   function buildTelemetryCardInnerHtml() {
     const t = TRANSLATIONS[state.lang];
     const tm = state.telemetry;
-    const isTunnelOpen =
-      tm.phase === 'connected' ||
-      tm.phase === 'transferring' ||
-      tm.phase === 'paused_backpressure' ||
-      tm.phase === 'completed';
     const isStreaming = tm.phase === 'transferring' || tm.phase === 'paused_backpressure';
-    const dotColor = isTunnelOpen
-      ? '#10b981'
-      : tm.phase === 'error'
-      ? '#f43f5e'
-      : '#f59e0b';
+    const showProgressStrip = isStreaming || tm.phase === 'completed';
+    if (!showProgressStrip) return '';
+
+    const muted = state.darkMode ? '#94a3b8' : '#64748b';
 
     return `
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;border-bottom:1px solid rgba(148,163,184,0.2);padding-bottom:0.75rem;">
-        <div style="display:flex;align-items:center;gap:0.5rem;">
-          <span style="color:#10b981;font-weight:700;">●</span>
-          <h2 style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;margin:0;">${escapeHtml(t.telemetry.panelTitle)}</h2>
+      <div style="display:flex;flex-direction:column;gap:0.6rem;">
+        ${
+          tm.resumedFromChunk !== null
+            ? `<div class="font-mono" style="padding:0.45rem 0.75rem;border-radius:0.55rem;background:rgba(14,165,233,0.1);border:1px solid rgba(14,165,233,0.28);font-size:0.72rem;color:#38bdf8;">
+                ${escapeHtml(t.telemetry.resumedFromChunk)}${tm.resumedFromChunk})
+              </div>`
+            : ''
+        }
+
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;font-size:0.78rem;">
+          <span style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(tm.activeFileName || t.telemetry.progressLabel)}</span>
+          <span class="font-mono" style="font-weight:700;color:#10b981;flex-shrink:0;">${tm.progressPercent.toFixed(1)}%</span>
         </div>
-        <span class="font-mono" style="font-size:0.68rem;font-weight:600;padding:0.2rem 0.6rem;border-radius:9999px;background:rgba(16,185,129,0.12);color:#34d399;border:1px solid rgba(16,185,129,0.3);">
-          ${escapeHtml(t.telemetry.securityBadgeValue)}
-        </span>
-      </div>
 
-      <div class="zs-grid-2" style="margin-top:0.85rem;">
-        <div class="zs-subcard" style="padding:0.75rem;">
-          <div style="font-size:0.68rem;color:#94a3b8;">${escapeHtml(t.telemetry.statusLabel)}</div>
-          <div style="font-size:0.8rem;font-weight:700;margin-top:0.2rem;display:flex;align-items:center;gap:0.4rem;">
-            <span style="width:0.5rem;height:0.5rem;border-radius:9999px;background:${dotColor};display:inline-block;"></span>
-            <span>${escapeHtml(t.status[tm.phase] || tm.phase)}</span>
-          </div>
-        </div>
-        <div class="zs-subcard" style="padding:0.75rem;">
-          <div style="font-size:0.68rem;color:#94a3b8;">${escapeHtml(t.telemetry.writeModeLabel)}</div>
-          <div style="font-size:0.8rem;font-weight:700;margin-top:0.2rem;color:#38bdf8;">
-            ${escapeHtml(tm.writeMode === 'disk' ? t.telemetry.writeModeDisk : t.telemetry.writeModeRam)}
-          </div>
-        </div>
-      </div>
-
-      ${
-        tm.fingerprint
-          ? `<div class="zs-subcard" style="margin-top:0.75rem;padding:0.6rem 0.85rem;font-size:0.75rem;display:flex;justify-content:space-between;align-items:center;">
-              <span style="color:#94a3b8;">${escapeHtml(t.telemetry.fingerprintLabel)}:</span>
-              <span class="font-mono" style="color:#34d399;font-weight:700;">${escapeHtml(tm.fingerprint)}</span>
-            </div>`
-          : ''
-      }
-
-      ${
-        tm.resumedFromChunk !== null
-          ? `<div class="font-mono" style="margin-top:0.75rem;padding:0.55rem 0.75rem;border-radius:0.65rem;background:rgba(14,165,233,0.12);border:1px solid rgba(14,165,233,0.3);font-size:0.72rem;color:#38bdf8;">
-              ${escapeHtml(t.telemetry.resumedFromChunk)}${tm.resumedFromChunk} (${formatBytes(tm.resumedFromChunk * SITE_CONFIG.chunkSize)})
-            </div>`
-          : ''
-      }
-
-      ${
-        tm.phase === 'paused_backpressure'
-          ? `<div class="font-mono" style="margin-top:0.75rem;padding:0.55rem 0.75rem;border-radius:0.65rem;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);font-size:0.72rem;color:#fbbf24;">
-              ${escapeHtml(t.telemetry.pauseNoticeBackpressure)}
-            </div>`
-          : ''
-      }
-
-      <div style="margin-top:0.85rem;">
-        <div style="display:flex;justify-content:space-between;font-size:0.75rem;margin-bottom:0.35rem;">
-          <span style="font-weight:600;">${escapeHtml(tm.activeFileName || t.telemetry.progressLabel)} (${formatBytes(tm.bytesTransferred)} / ${formatBytes(tm.totalBytes)})</span>
-          <span class="font-mono" style="font-weight:700;color:#10b981;">${tm.progressPercent.toFixed(1)}%</span>
-        </div>
         <div class="zs-progress-track">
           <div class="zs-progress-bar" style="width:${Math.min(100, tm.progressPercent)}%;"></div>
         </div>
 
-        <div class="zs-grid-3 font-mono" style="margin-top:0.65rem;text-align:center;">
-          <div class="zs-subcard" style="padding:0.5rem;">
-            <div style="font-size:0.65rem;color:#94a3b8;">${escapeHtml(t.telemetry.speedLabel)}</div>
-            <div style="font-size:0.78rem;font-weight:700;margin-top:0.15rem;">${tm.speedMbps.toFixed(2)} MB/s</div>
-          </div>
-          <div class="zs-subcard" style="padding:0.5rem;">
-            <div style="font-size:0.65rem;color:#94a3b8;">${escapeHtml(t.telemetry.etaLabel)}</div>
-            <div style="font-size:0.78rem;font-weight:700;margin-top:0.15rem;">${formatDuration(tm.etaSeconds)}</div>
-          </div>
-          <div class="zs-subcard" style="padding:0.5rem;">
-            <div style="font-size:0.65rem;color:#94a3b8;">${escapeHtml(t.telemetry.chunksAckedLabel)}</div>
-            <div style="font-size:0.78rem;font-weight:700;color:#10b981;margin-top:0.15rem;">${tm.lastAckedChunk >= 0 ? tm.lastAckedChunk + 1 : 0} / ${tm.totalChunks}</div>
-          </div>
+        <div class="font-mono" style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;font-size:0.7rem;color:${muted};flex-wrap:wrap;">
+          <span>
+            ${formatBytes(tm.bytesTransferred)} / ${formatBytes(tm.totalBytes)}${
+      isStreaming
+        ? ` · ${tm.speedMbps.toFixed(2)} MB/s · ${formatDuration(tm.etaSeconds)}`
+        : ''
+    }
+          </span>
+          <span>${escapeHtml(tm.writeMode === 'disk' ? t.telemetry.writeModeDisk : t.telemetry.writeModeRam)}</span>
         </div>
+
+        ${
+          isStreaming
+            ? `<button type="button" id="zs-btn-abort-transfer" style="margin-top:0.25rem;width:100%;padding:0.55rem 0.75rem;border-radius:0.75rem;background:rgba(244,63,94,0.1);border:1px solid rgba(244,63,94,0.28);color:#f43f5e;font-size:0.78rem;font-weight:600;display:flex;align-items:center;justify-content:center;gap:0.4rem;">
+                ${svgIcon(UI_ICONS.xCircle, 14, '#f43f5e')}
+                <span>${escapeHtml(t.telemetry.cancelTransfer)}</span>
+              </button>`
+            : ''
+        }
+
+        ${
+          tm.phase === 'completed'
+            ? `<div style="padding:0.65rem 0.8rem;border-radius:0.75rem;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.28);display:flex;align-items:center;justify-content:space-between;gap:0.5rem;font-size:0.78rem;color:#10b981;font-weight:600;">
+                <span>${escapeHtml(t.telemetry.transferComplete)}</span>
+                ${
+                  tm.completedDownloadUrl &&
+                  String(tm.completedDownloadUrl).startsWith('blob:') &&
+                  tm.activeFileName
+                    ? `<a href="${escapeHtml(tm.completedDownloadUrl)}" download="${escapeHtml(sanitizeFileName(tm.activeFileName))}" rel="noopener noreferrer" class="zs-btn-primary" style="padding:0.35rem 0.75rem;font-size:0.72rem;text-decoration:none;">${escapeHtml(t.telemetry.downloadAgain)}</a>`
+                    : ''
+                }
+              </div>`
+            : ''
+        }
       </div>
-
-      ${
-        isStreaming
-          ? `<button type="button" id="zs-btn-abort-transfer" style="margin-top:0.75rem;width:100%;padding:0.6rem;border-radius:0.75rem;background:rgba(244,63,94,0.12);border:1px solid rgba(244,63,94,0.3);color:#f43f5e;font-size:0.78rem;font-weight:700;">
-              ${escapeHtml(t.telemetry.cancelTransfer)}
-            </button>`
-          : ''
-      }
-
-      ${
-        tm.phase === 'completed'
-          ? `<div style="margin-top:0.75rem;padding:0.75rem;border-radius:0.75rem;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);display:flex;align-items:center;justify-content:space-between;gap:0.5rem;font-size:0.78rem;color:#34d399;font-weight:700;">
-              <span>✓ ${escapeHtml(t.telemetry.transferComplete)}</span>
-              ${
-                tm.completedDownloadUrl &&
-                String(tm.completedDownloadUrl).startsWith('blob:') &&
-                tm.activeFileName
-                  ? `<a href="${escapeHtml(tm.completedDownloadUrl)}" download="${escapeHtml(sanitizeFileName(tm.activeFileName))}" rel="noopener noreferrer" class="zs-btn-primary" style="padding:0.35rem 0.75rem;font-size:0.72rem;text-decoration:none;">${escapeHtml(t.telemetry.downloadAgain)}</a>`
-                  : ''
-              }
-            </div>`
-          : ''
-      }
     `;
   }
 
@@ -2693,376 +2777,391 @@
       tm.phase === 'paused_backpressure' ||
       tm.phase === 'completed';
     const isStreaming = tm.phase === 'transferring' || tm.phase === 'paused_backpressure';
+    const showProgressStrip = isStreaming || tm.phase === 'completed';
     const totalQueueBytes = state.queuedEntries.reduce((acc, it) => acc + it.file.size, 0);
     const diskSupported = isFileSystemAccessSupported();
+    const muted = state.darkMode ? '#94a3b8' : '#64748b';
+    const canRetryConnection =
+      state.errorCode === 'receiverDisconnected' ||
+      state.errorCode === 'senderDisconnected' ||
+      state.errorCode === 'peerDisconnected';
+    const statusDotColor = isTunnelOpen
+      ? '#10b981'
+      : tm.phase === 'error'
+      ? '#f43f5e'
+      : tm.phase === 'idle'
+      ? '#94a3b8'
+      : '#f59e0b';
+    const statusDotCls =
+      !isTunnelOpen && tm.phase !== 'error' && tm.phase !== 'idle' ? 'zs-pulse' : '';
 
     rootEl.innerHTML = `
       <div class="zs-shell">
         <div>
-          <!-- Navbar -->
+          <!-- Simplified Navbar -->
           <header class="zs-navbar">
             <div class="zs-container zs-navbar-inner">
-              <div style="display:flex;align-items:center;gap:0.75rem;">
-                <div style="width:2.5rem;height:2.5rem;border-radius:0.75rem;background:#0f172a;border:1px solid rgba(16,185,129,0.35);display:flex;align-items:center;justify-content:center;">
-                  <svg viewBox="0 0 64 64" fill="none" style="width:1.5rem;height:1.5rem;">
+              <div style="display:flex;align-items:center;gap:0.6rem;">
+                <div style="width:2.25rem;height:2.25rem;border-radius:0.65rem;background:#0f172a;border:1px solid rgba(16,185,129,0.35);display:flex;align-items:center;justify-content:center;">
+                  <svg viewBox="0 0 64 64" fill="none" style="width:1.25rem;height:1.25rem;" aria-hidden="true">
                     <path d="M32 8L52 19.5V44.5L32 56L12 44.5V19.5L32 8Z" stroke="#10B981" stroke-width="4.5" stroke-linejoin="round"/>
                     <path d="M22 26L42 38M42 26L22 38" stroke="#38BDF8" stroke-width="3.5" stroke-linecap="round"/>
                     <circle cx="32" cy="32" r="5.5" fill="#10B981"/>
                   </svg>
                 </div>
-                <div>
-                  <div style="display:flex;align-items:center;gap:0.4rem;">
-                    <span style="font-weight:800;font-size:1.125rem;letter-spacing:-0.02em;">
-                      ${SITE_CONFIG.name}<span style="color:#10b981;">${SITE_CONFIG.domain}</span>
-                    </span>
-                    <span class="font-mono" style="font-size:0.68rem;padding:0.1rem 0.5rem;border-radius:9999px;background:rgba(16,185,129,0.12);color:#10b981;border:1px solid rgba(16,185,129,0.25);">
-                      🔒 E2EE
-                    </span>
-                  </div>
-                  <div style="font-size:0.68rem;color:#94a3b8;">${escapeHtml(t.nav.zeroLogsBadge)}</div>
-                </div>
+                <span style="font-weight:700;font-size:1.05rem;letter-spacing:-0.02em;">
+                  ${SITE_CONFIG.name}<span style="color:#10b981;">${SITE_CONFIG.domain}</span>
+                </span>
               </div>
 
-              <div style="display:flex;align-items:center;gap:0.5rem;">
-                <button type="button" id="zs-btn-how" class="zs-btn-ghost" style="padding:0.45rem 0.75rem;font-size:0.8rem;font-weight:600;">
-                  ❓ ${escapeHtml(t.nav.howItWorks)}
+              <div style="display:flex;align-items:center;gap:0.4rem;">
+                <button type="button" id="zs-btn-how" class="zs-btn-ghost" style="padding:0.4rem 0.65rem;font-size:0.78rem;font-weight:500;">
+                  ${svgIcon(UI_ICONS.help, 15, '#0ea5e9')}
+                  <span>${escapeHtml(t.nav.howItWorks)}</span>
                 </button>
-                <button type="button" id="zs-btn-sec" class="zs-btn-ghost" style="padding:0.45rem 0.75rem;font-size:0.8rem;font-weight:600;">
-                  🛡️ ${escapeHtml(t.nav.security)}
+                <button type="button" id="zs-btn-sec" class="zs-btn-ghost" style="padding:0.4rem 0.65rem;font-size:0.78rem;font-weight:500;">
+                  ${svgIcon(UI_ICONS.shield, 15, '#10b981')}
+                  <span>${escapeHtml(t.nav.security)}</span>
                 </button>
 
-                <!-- TR | EN Switcher -->
-                <div role="group" aria-label="${escapeHtml(t.nav.langSwitchLabel)}" style="display:inline-flex;padding:0.15rem;border-radius:0.5rem;background:rgba(148,163,184,0.15);border:1px solid rgba(148,163,184,0.25);">
-                  <button type="button" id="zs-lang-tr" class="font-mono" style="padding:0.25rem 0.55rem;border-radius:0.375rem;font-size:0.75rem;font-weight:700;background:${state.lang === 'tr' ? '#10b981' : 'transparent'};color:${state.lang === 'tr' ? '#ffffff' : 'inherit'};">TR</button>
-                  <button type="button" id="zs-lang-en" class="font-mono" style="padding:0.25rem 0.55rem;border-radius:0.375rem;font-size:0.75rem;font-weight:700;background:${state.lang === 'en' ? '#10b981' : 'transparent'};color:${state.lang === 'en' ? '#ffffff' : 'inherit'};">EN</button>
+                <div role="group" aria-label="${escapeHtml(t.nav.langSwitchLabel)}" class="zs-tabs" style="padding:0.15rem;border-radius:0.55rem;">
+                  <button type="button" id="zs-lang-tr" class="font-mono ${state.lang === 'tr' ? 'zs-tab-active' : ''}" style="padding:0.25rem 0.5rem;border-radius:0.4rem;font-size:0.7rem;font-weight:700;background:${state.lang === 'tr' ? (state.darkMode ? '#0f172a' : '#ffffff') : 'transparent'};color:${state.lang === 'tr' ? '#10b981' : muted};">TR</button>
+                  <button type="button" id="zs-lang-en" class="font-mono ${state.lang === 'en' ? 'zs-tab-active' : ''}" style="padding:0.25rem 0.5rem;border-radius:0.4rem;font-size:0.7rem;font-weight:700;background:${state.lang === 'en' ? (state.darkMode ? '#0f172a' : '#ffffff') : 'transparent'};color:${state.lang === 'en' ? '#10b981' : muted};">EN</button>
                 </div>
 
-                <!-- Dark/Light Theme Toggle -->
-                <button type="button" id="zs-btn-theme" class="zs-btn-ghost" style="padding:0.45rem 0.65rem;border:1px solid rgba(148,163,184,0.25);border-radius:0.5rem;" title="${escapeHtml(state.darkMode ? t.nav.themeToggleLight : t.nav.themeToggleDark)}">
-                  ${state.darkMode ? '☀️' : '🌙'}
+                <button type="button" id="zs-btn-theme" class="zs-btn-tonal" style="padding:0.45rem;border-radius:0.55rem;" title="${escapeHtml(state.darkMode ? t.nav.themeToggleLight : t.nav.themeToggleDark)}" aria-label="${escapeHtml(state.darkMode ? t.nav.themeToggleLight : t.nav.themeToggleDark)}">
+                  ${state.darkMode ? svgIcon(UI_ICONS.sun, 16, '#fbbf24') : svgIcon(UI_ICONS.moon, 16, '#334155')}
                 </button>
               </div>
             </div>
           </header>
 
-          <!-- Main Hero Workspace -->
-          <main class="zs-container" style="padding-top:1.5rem;padding-bottom:1rem;">
+          <!-- Main Focused Single-Column Workspace -->
+          <main class="zs-container" style="padding-top:2rem;padding-bottom:1rem;">
             ${
               state.isDraggingWindow
                 ? `<div class="zs-modal-overlay">
-                    <div class="zs-card" style="padding:2.5rem;text-align:center;max-width:32rem;border:2px dashed #10b981;">
-                      <div style="font-size:2.5rem;margin-bottom:0.75rem;">📂</div>
-                      <h2 style="font-size:1.4rem;font-weight:800;margin:0 0 0.5rem 0;">${escapeHtml(t.hero.dropOverlayTitle)}</h2>
-                      <p style="font-size:0.875rem;color:#94a3b8;margin:0;">${escapeHtml(t.hero.dropOverlaySubtitle)}</p>
+                    <div class="zs-card" style="padding:2.25rem;text-align:center;max-width:26rem;border:2px dashed #10b981;">
+                      <div style="width:3.25rem;height:3.25rem;margin:0 auto 0.75rem auto;border-radius:1rem;background:rgba(16,185,129,0.12);display:flex;align-items:center;justify-content:center;">
+                        ${svgIcon(UI_ICONS.upload, 26, '#10b981')}
+                      </div>
+                      <h2 style="font-size:1.25rem;font-weight:700;margin:0 0 0.35rem 0;">${escapeHtml(t.hero.dropOverlayTitle)}</h2>
+                      <p style="font-size:0.8rem;color:${muted};margin:0;">${escapeHtml(t.hero.dropOverlaySubtitle)}</p>
                     </div>
                   </div>`
                 : ''
             }
 
-            <div style="text-align:center;max-width:46rem;margin:0 auto 1.5rem auto;">
-              <div class="font-mono" style="display:inline-flex;align-items:center;gap:0.4rem;padding:0.25rem 0.85rem;border-radius:9999px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.28);color:#10b981;font-size:0.68rem;font-weight:700;margin-bottom:0.6rem;">
-                🛡️ ${escapeHtml(t.hero.badge)}
-              </div>
+            <div class="zs-focus-wrap" style="text-align:center;margin-bottom:1.5rem;">
               <h1 style="font-size:1.75rem;font-weight:800;letter-spacing:-0.025em;margin:0;">${escapeHtml(t.hero.title)}</h1>
-              <p style="font-size:0.875rem;color:#94a3b8;margin:0.45rem 0 0 0;">${escapeHtml(t.hero.subtitle)}</p>
+              <p style="font-size:0.875rem;color:${muted};margin:0.4rem 0 0 0;">${escapeHtml(t.hero.subtitle)}</p>
             </div>
 
-            ${
-              state.errorCode
-                ? `<div style="margin-bottom:1.25rem;padding:0.85rem 1.1rem;border-radius:0.85rem;background:rgba(244,63,94,0.12);border:1px solid rgba(244,63,94,0.35);color:#fb7185;display:flex;align-items:center;justify-content:space-between;gap:0.75rem;font-size:0.85rem;">
-                    <span>⚠️ ${escapeHtml(t.errors[state.errorCode] || state.errorCode)}</span>
-                    <div style="display:flex;gap:0.5rem;">
-                      ${
-                        state.errorCode === 'peerDisconnected'
-                          ? `<button type="button" id="zs-btn-reconnect" class="zs-btn-primary" style="padding:0.3rem 0.75rem;font-size:0.75rem;background:#e11d48;">↻ Resume</button>`
-                          : ''
-                      }
-                      <button type="button" id="zs-btn-dismiss-err" style="background:transparent;color:inherit;text-decoration:underline;font-size:0.75rem;">${escapeHtml(t.modals.close)}</button>
-                    </div>
-                  </div>`
-                : ''
-            }
-
-            <div class="zs-main-grid">
-              <!-- Left Column: Interactive Transfer Card -->
-              <section class="zs-card" style="overflow:hidden;">
-                <!-- Tabs -->
-                <div class="zs-grid-2" style="padding:0.4rem;background:rgba(2,6,23,0.45);border-bottom:1px solid rgba(148,163,184,0.15);">
-                  <button type="button" id="zs-tab-send" ${isStreaming ? 'disabled' : ''} style="padding:0.65rem 1rem;border-radius:0.75rem;font-size:0.85rem;font-weight:700;background:${state.role === 'sender' ? 'rgba(16,185,129,0.16)' : 'transparent'};color:${state.role === 'sender' ? '#34d399' : '#94a3b8'};border:${state.role === 'sender' ? '1px solid rgba(16,185,129,0.35)' : '1px solid transparent'};">
-                    📤 ${escapeHtml(t.hero.tabSend)}
+            <section class="zs-focus-wrap zs-card" style="overflow:hidden;">
+              <!-- Segmented Tabs + Single Status Pill -->
+              <div class="zs-card-header">
+                <div class="zs-tabs">
+                  <button type="button" id="zs-tab-send" ${isStreaming ? 'disabled' : ''} class="zs-tab ${state.role === 'sender' ? 'zs-tab-active' : ''}">
+                    ${svgIcon(UI_ICONS.send, 14, '#10b981')}
+                    <span>${escapeHtml(t.hero.tabSend)}</span>
                   </button>
-                  <button type="button" id="zs-tab-receive" ${isStreaming ? 'disabled' : ''} style="padding:0.65rem 1rem;border-radius:0.75rem;font-size:0.85rem;font-weight:700;background:${state.role === 'receiver' ? 'rgba(14,165,233,0.16)' : 'transparent'};color:${state.role === 'receiver' ? '#38bdf8' : '#94a3b8'};border:${state.role === 'receiver' ? '1px solid rgba(14,165,233,0.35)' : '1px solid transparent'};">
-                    📥 ${escapeHtml(t.hero.tabReceive)}
+                  <button type="button" id="zs-tab-receive" ${isStreaming ? 'disabled' : ''} class="zs-tab ${state.role === 'receiver' ? 'zs-tab-active' : ''}">
+                    ${svgIcon(UI_ICONS.download, 14, '#0ea5e9')}
+                    <span>${escapeHtml(t.hero.tabReceive)}</span>
                   </button>
                 </div>
 
-                <div style="padding:1.35rem;">
-                  ${
-                    state.role === 'sender'
-                      ? `
-                        <!-- SENDER VIEW -->
-                        <div class="zs-subcard" style="padding:1rem;">
-                          <div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;margin-bottom:0.65rem;">
-                            <span style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#94a3b8;">
-                              🔑 ${escapeHtml(t.sender.seedLabel)}
-                            </span>
-                            ${
-                              tm.roomLocked
-                                ? `<span class="font-mono" style="font-size:0.68rem;font-weight:700;padding:0.15rem 0.55rem;border-radius:9999px;background:rgba(16,185,129,0.15);color:#34d399;border:1px solid rgba(16,185,129,0.3);">🔒 ${escapeHtml(t.sender.roomLockedBadge)}</span>`
-                                : `<span class="font-mono zs-pulse" style="font-size:0.68rem;color:#fbbf24;">📡 ${escapeHtml(t.sender.waitingForPeer)}</span>`
-                            }
-                          </div>
+                <span class="zs-pill">
+                  <span class="${statusDotCls}" style="width:0.5rem;height:0.5rem;border-radius:9999px;background:${statusDotColor};display:inline-block;"></span>
+                  <span>${escapeHtml(t.status[tm.phase] || tm.phase)}</span>
+                </span>
+              </div>
 
-                          <div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;">
-                            <div aria-readonly="true" class="font-mono" style="flex:1;min-width:14rem;padding:0.75rem 1rem;border-radius:0.75rem;background:rgba(15,23,42,0.9);border:1px solid rgba(16,185,129,0.4);color:#34d399;font-size:1.05rem;font-weight:700;display:flex;align-items:center;justify-content:space-between;user-select:all;">
-                              <span>${escapeHtml(state.senderSeed)}</span>
-                            </div>
-
-                            <button type="button" id="zs-btn-copy-seed" class="zs-btn-primary" style="padding:0.75rem 1rem;font-size:0.8rem;">
-                              ${state.seedCopied ? '✓ ' + escapeHtml(t.sender.copiedSeed) : '📋 ' + escapeHtml(t.sender.copySeed)}
-                            </button>
-
-                            <button type="button" id="zs-btn-regen-seed" ${isStreaming ? 'disabled' : ''} class="zs-btn-ghost" style="padding:0.75rem 0.85rem;border:1px solid rgba(148,163,184,0.25);border-radius:0.75rem;font-size:0.8rem;" title="${escapeHtml(t.sender.regenerateSeed)}">
-                              🔄 ${escapeHtml(t.sender.regenerateSeed)}
-                            </button>
-
-                            <button type="button" id="zs-btn-toggle-qr" class="zs-btn-ghost" style="padding:0.75rem 0.85rem;border:1px solid ${state.showQr ? '#10b981' : 'rgba(148,163,184,0.25)'};border-radius:0.75rem;font-size:0.8rem;">
-                              📱 ${escapeHtml(state.showQr ? t.sender.hideQr : t.sender.showQr)}
-                            </button>
-                          </div>
-
-                          <p style="font-size:0.7rem;color:#94a3b8;margin:0.55rem 0 0 0;">${escapeHtml(t.sender.seedHint)}</p>
-
+              <div style="padding:1.35rem;display:flex;flex-direction:column;gap:1.15rem;">
+                ${
+                  state.errorCode
+                    ? `<div style="padding:0.85rem 1rem;border-radius:0.85rem;background:rgba(244,63,94,0.1);border:1px solid rgba(244,63,94,0.3);color:${state.darkMode ? '#fda4af' : '#be123c'};display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:0.65rem;font-size:0.8rem;">
+                        <div style="display:flex;align-items:center;gap:0.55rem;flex:1;min-width:12rem;">
+                          ${svgIcon(UI_ICONS.alert, 16, '#f43f5e')}
+                          <span>${escapeHtml(t.errors[state.errorCode] || state.errorCode)}</span>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:0.45rem;">
                           ${
-                            state.showQr
-                              ? `<div style="margin-top:0.85rem;padding-top:0.85rem;border-top:1px solid rgba(148,163,184,0.2);display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
-                                  <div style="padding:0.5rem;background:#ffffff;border-radius:0.75rem;display:inline-flex;">
-                                    ${renderSeedQrSvg(state.senderSeed, 112)}
-                                  </div>
-                                  <div style="flex:1;min-width:12rem;">
-                                    <div style="font-size:0.8rem;font-weight:700;">${escapeHtml(t.sender.qrModalTitle)}</div>
-                                    <p style="font-size:0.72rem;color:#94a3b8;margin:0.25rem 0;">${escapeHtml(t.sender.qrModalHint)}</p>
-                                    <div class="font-mono" style="font-size:0.78rem;color:#10b981;font-weight:700;">${escapeHtml(state.senderSeed)}</div>
-                                  </div>
-                                </div>`
+                            canRetryConnection
+                              ? `<button type="button" id="zs-btn-reconnect" style="display:inline-flex;align-items:center;gap:0.35rem;padding:0.4rem 0.75rem;border-radius:0.55rem;background:#e11d48;color:#ffffff;font-size:0.75rem;font-weight:600;">
+                                  ${svgIcon(UI_ICONS.rotate, 13, '#ffffff')}
+                                  <span>${escapeHtml(state.role === 'sender' ? t.sender.waitAgainBtn : t.receiver.reconnectBtn)}</span>
+                                </button>`
                               : ''
                           }
+                          <button type="button" id="zs-btn-dismiss-err" style="background:transparent;color:inherit;padding:0.3rem 0.5rem;font-size:0.75rem;opacity:0.8;">${escapeHtml(t.modals.close)}</button>
                         </div>
+                      </div>`
+                    : ''
+                }
 
-                        <!-- Dropzone -->
-                        <div class="zs-dropzone" style="margin-top:1rem;">
-                          <div style="font-size:1.6rem;margin-bottom:0.35rem;">📦</div>
-                          <div style="font-size:0.9rem;font-weight:700;">${escapeHtml(t.sender.selectFilesTitle)}</div>
-                          <div style="font-size:0.75rem;color:#94a3b8;margin-top:0.2rem;">${escapeHtml(t.sender.selectFilesSubtitle)}</div>
+                ${
+                  state.role === 'sender'
+                    ? `
+                      <!-- Compact Connection Code Box -->
+                      <div class="zs-subcard" style="padding:1rem;display:flex;flex-direction:column;gap:0.65rem;">
+                        <span style="font-size:0.75rem;font-weight:600;color:${muted};">${escapeHtml(t.sender.seedLabel)}</span>
 
-                          <input type="file" id="zs-input-files" multiple style="display:none;" />
-                          <input type="file" id="zs-input-folder" webkitdirectory directory multiple style="display:none;" />
-
-                          <div style="display:flex;justify-content:center;gap:0.65rem;margin-top:0.85rem;flex-wrap:wrap;">
-                            <button type="button" id="zs-btn-browse-files" ${isStreaming ? 'disabled' : ''} class="zs-btn-primary" style="padding:0.55rem 1rem;font-size:0.78rem;">
-                              📄 ${escapeHtml(t.sender.browseFilesBtn)}
-                            </button>
-                            <button type="button" id="zs-btn-browse-folder" ${isStreaming ? 'disabled' : ''} class="zs-btn-sky" style="padding:0.55rem 1rem;font-size:0.78rem;">
-                              📁 ${escapeHtml(t.sender.browseFolderBtn)}
-                            </button>
-                          </div>
-                        </div>
-
-                        <!-- Queue Section -->
-                        <div style="margin-top:1rem;">
-                          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem;">
-                            <span style="font-size:0.72rem;font-weight:700;text-transform:uppercase;color:#94a3b8;">
-                              ${escapeHtml(t.sender.queueTitle)}
-                              ${
-                                state.queuedEntries.length > 0
-                                  ? `<span class="font-mono" style="margin-left:0.4rem;color:#10b981;">(${state.queuedEntries.length} ${escapeHtml(t.sender.filesSelected)} • ${formatBytes(totalQueueBytes)})</span>`
-                                  : ''
-                              }
-                            </span>
-                            ${
-                              state.queuedEntries.length > 0 && !isStreaming
-                                ? `<button type="button" id="zs-btn-clear-queue" style="background:transparent;color:#fb7185;font-size:0.75rem;font-weight:600;">🗑️ ${escapeHtml(t.sender.clearQueue)}</button>`
-                                : ''
-                            }
+                        <div style="display:flex;flex-wrap:wrap;gap:0.45rem;align-items:center;">
+                          <div aria-readonly="true" class="zs-input font-mono" style="flex:1;min-width:11rem;padding:0.6rem 0.85rem;color:#10b981;font-weight:700;user-select:all;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                            ${escapeHtml(state.senderSeed)}
                           </div>
 
-                          ${
-                            state.queuedEntries.length === 0
-                              ? `<div class="zs-subcard" style="padding:0.85rem;text-align:center;font-size:0.75rem;color:#94a3b8;">
-                                  ${escapeHtml(t.sender.emptyQueueHint)}
-                                </div>`
-                              : `
-                                ${
-                                  state.hasDirectoryInQueue || state.queuedEntries.length > 1
-                                    ? `<div style="margin-bottom:0.5rem;padding:0.55rem 0.85rem;border-radius:0.65rem;background:rgba(14,165,233,0.12);border:1px solid rgba(14,165,233,0.3);font-size:0.75rem;color:#38bdf8;display:flex;justify-content:space-between;">
-                                        <span>🗜️ ${escapeHtml(t.sender.zipStreamReady)}: <strong>${escapeHtml(state.rootFolderName ? state.rootFolderName + '.zip' : 'ZeroSeed-Archive.zip')}</strong></span>
-                                        <span class="font-mono">ZIP Stream</span>
-                                      </div>`
-                                    : ''
-                                }
-                                <div style="max-height:8.5rem;overflow-y:auto;display:flex;flex-direction:column;gap:0.35rem;margin-bottom:0.75rem;">
-                                  ${state.queuedEntries
-                                    .slice(0, 20)
-                                    .map(
-                                      (it) => `
-                                    <div class="zs-subcard font-mono" style="padding:0.45rem 0.75rem;font-size:0.72rem;display:flex;justify-content:space-between;gap:0.5rem;">
-                                      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(it.relativePath)}</span>
-                                      <span style="color:#94a3b8;flex-shrink:0;">${formatBytes(it.file.size)}</span>
-                                    </div>`
-                                    )
-                                    .join('')}
-                                </div>
-                                <button type="button" id="zs-btn-start-send" ${!isTunnelOpen || isStreaming ? 'disabled' : ''} class="zs-btn-primary" style="width:100%;padding:0.8rem;font-size:0.88rem;">
-                                  🚀 ${escapeHtml(t.sender.startTransferBtn)}
-                                </button>
-                              `
-                          }
+                          <button type="button" id="zs-btn-copy-seed" class="zs-btn-primary" style="padding:0.65rem 0.9rem;font-size:0.78rem;">
+                            ${state.seedCopied ? svgIcon(UI_ICONS.check, 15, '#ffffff') : svgIcon(UI_ICONS.copy, 15, '#ffffff')}
+                            <span>${escapeHtml(state.seedCopied ? t.sender.copiedSeed : t.sender.copySeed)}</span>
+                          </button>
+
+                          <button type="button" id="zs-btn-regen-seed" ${isStreaming ? 'disabled' : ''} class="zs-btn-tonal" style="padding:0.65rem;" title="${escapeHtml(t.sender.regenerateSeed)}" aria-label="${escapeHtml(t.sender.regenerateSeed)}">
+                            ${svgIcon(UI_ICONS.refresh, 16)}
+                          </button>
+
+                          <button type="button" id="zs-btn-toggle-qr" class="zs-btn-tonal" style="padding:0.65rem;border:1px solid ${state.showQr ? 'rgba(16,185,129,0.45)' : 'transparent'};color:${state.showQr ? '#10b981' : 'inherit'};" title="${escapeHtml(state.showQr ? t.sender.hideQr : t.sender.showQr)}" aria-label="${escapeHtml(state.showQr ? t.sender.hideQr : t.sender.showQr)}">
+                            ${svgIcon(UI_ICONS.qr, 16)}
+                          </button>
                         </div>
-                      `
-                      : `
-                        <!-- RECEIVER VIEW -->
-                        <div class="zs-subcard" style="padding:1rem;">
-                          <label for="zs-receiver-seed" style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;color:#94a3b8;margin-bottom:0.5rem;">
-                            ${escapeHtml(t.receiver.seedInputLabel)}
-                          </label>
-                          <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
-                            <input id="zs-receiver-seed" type="text" value="${escapeHtml(state.receiverSeedInput)}" placeholder="${escapeHtml(t.receiver.seedInputPlaceholder)}" maxlength="64" class="zs-input font-mono" style="flex:1;min-width:14rem;" autocomplete="off" spellcheck="false" />
-                            ${
-                              !isTunnelOpen
-                                ? `<button type="button" id="zs-btn-connect-rx" class="zs-btn-sky" style="padding:0.75rem 1.25rem;font-size:0.85rem;">⚡ ${escapeHtml(t.receiver.connectBtn)}</button>`
-                                : `<button type="button" id="zs-btn-disconnect-rx" style="padding:0.75rem 1rem;border-radius:0.75rem;background:rgba(244,63,94,0.15);color:#fb7185;border:1px solid rgba(244,63,94,0.3);font-size:0.8rem;font-weight:700;">${escapeHtml(t.receiver.disconnectBtn)}</button>`
-                            }
-                          </div>
-                          <p style="font-size:0.72rem;color:#94a3b8;margin:0.5rem 0 0 0;">${escapeHtml(t.receiver.seedFormatHint)}</p>
-                        </div>
+
+                        <p style="font-size:0.72rem;color:${muted};margin:0;">${escapeHtml(t.sender.seedHint)}</p>
 
                         ${
-                          state.incomingOffer
-                            ? `<div style="margin-top:1rem;padding:1.15rem;border-radius:1rem;background:rgba(16,185,129,0.1);border:2px solid rgba(16,185,129,0.4);">
-                                <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;color:#10b981;">${escapeHtml(t.receiver.incomingOfferTitle)}</div>
-                                <div class="font-mono" style="font-size:1rem;font-weight:800;margin-top:0.25rem;word-break:break-all;">${escapeHtml(state.incomingOffer.fileName)}</div>
-                                <div class="font-mono" style="font-size:0.75rem;color:#94a3b8;margin-top:0.2rem;">
-                                  ${formatBytes(state.incomingOffer.fileSize)}
+                          state.showQr
+                            ? `<div style="padding-top:0.75rem;border-top:1px solid rgba(148,163,184,0.18);display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+                                <div style="padding:0.55rem;background:#ffffff;border-radius:0.75rem;border:1px solid #e2e8f0;display:inline-flex;">
+                                  ${renderSeedQrSvg(state.senderSeed, 104)}
                                 </div>
-                                <div style="display:flex;gap:0.6rem;flex-wrap:wrap;margin-top:0.9rem;">
-                                  ${
-                                    diskSupported
-                                      ? `<button type="button" id="zs-btn-accept-disk" class="zs-btn-primary" style="flex:1;padding:0.75rem 1rem;font-size:0.82rem;">💾 ${escapeHtml(t.receiver.acceptSaveDiskBtn)}</button>
-                                         <button type="button" id="zs-btn-accept-ram" class="zs-btn-ghost" style="padding:0.75rem 1rem;border:1px solid rgba(148,163,184,0.3);border-radius:0.75rem;font-size:0.78rem;font-weight:600;">${escapeHtml(t.receiver.acceptRamFallbackBtn)}</button>`
-                                      : `<button type="button" id="zs-btn-accept-ram" class="zs-btn-primary" style="width:100%;padding:0.75rem 1rem;font-size:0.85rem;">📥 ${escapeHtml(t.receiver.acceptRamFallbackBtn)}</button>`
-                                  }
+                                <div style="flex:1;min-width:11rem;">
+                                  <div style="font-size:0.78rem;font-weight:700;">${escapeHtml(t.sender.qrModalTitle)}</div>
+                                  <p style="font-size:0.72rem;color:${muted};margin:0.2rem 0;">${escapeHtml(t.sender.qrModalHint)}</p>
+                                  <div class="font-mono" style="font-size:0.75rem;color:#10b981;font-weight:600;">${escapeHtml(state.senderSeed)}</div>
                                 </div>
-                                <p style="font-size:0.7rem;color:#94a3b8;margin:0.6rem 0 0 0;">${escapeHtml(t.receiver.autoStreamNotice)}</p>
                               </div>`
-                            : `<div class="zs-subcard font-mono" style="margin-top:1rem;padding:1.25rem;text-align:center;font-size:0.78rem;color:#94a3b8;">
-                                ${
-                                  tm.phase === 'connecting_broker'
-                                    ? escapeHtml(t.receiver.connectingBroker)
-                                    : tm.phase === 'waiting_peer'
-                                    ? escapeHtml(t.receiver.waitingSenderOffer)
-                                    : tm.phase === 'connected'
-                                    ? escapeHtml(t.receiver.connectedReady)
-                                    : escapeHtml(t.receiver.seedFormatHint)
-                                }
-                              </div>`
+                            : ''
                         }
-                      `
-                  }
-                </div>
-              </section>
+                      </div>
 
-              <!-- Right Column: Live Cryptographic Telemetry & Encrypted Instant Clipboard -->
-              <section style="display:flex;flex-direction:column;gap:1.25rem;">
-                <div id="zs-telemetry-panel" class="zs-card" style="padding:1.25rem;">
+                      <!-- Clean Dropzone -->
+                      <div class="zs-dropzone">
+                        <div style="width:2.5rem;height:2.5rem;margin:0 auto 0.65rem auto;border-radius:0.75rem;background:rgba(16,185,129,0.12);display:flex;align-items:center;justify-content:center;">
+                          ${svgIcon(UI_ICONS.upload, 20, '#10b981')}
+                        </div>
+                        <div style="font-size:0.9rem;font-weight:700;">${escapeHtml(t.sender.selectFilesTitle)}</div>
+                        <div style="font-size:0.75rem;color:${muted};margin-top:0.2rem;">${escapeHtml(t.sender.selectFilesSubtitle)}</div>
+
+                        <input type="file" id="zs-input-files" multiple style="display:none;" />
+                        <input type="file" id="zs-input-folder" webkitdirectory directory multiple style="display:none;" />
+
+                        <div style="display:flex;justify-content:center;gap:0.5rem;margin-top:0.85rem;flex-wrap:wrap;">
+                          <button type="button" id="zs-btn-browse-files" ${isStreaming ? 'disabled' : ''} style="display:inline-flex;align-items:center;gap:0.4rem;padding:0.55rem 1rem;border-radius:0.75rem;font-size:0.78rem;font-weight:600;background:${state.darkMode ? '#1e293b' : '#0f172a'};color:#ffffff;">
+                            ${svgIcon(UI_ICONS.file, 14, '#34d399')}
+                            <span>${escapeHtml(t.sender.browseFilesBtn)}</span>
+                          </button>
+                          <button type="button" id="zs-btn-browse-folder" ${isStreaming ? 'disabled' : ''} class="zs-btn-tonal" style="padding:0.55rem 1rem;font-size:0.78rem;">
+                            ${svgIcon(UI_ICONS.folder, 14, '#0ea5e9')}
+                            <span>${escapeHtml(t.sender.browseFolderBtn)}</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <!-- Progressive Queue Section (Only rendered when items exist) -->
+                      ${
+                        state.queuedEntries.length > 0
+                          ? `<div style="display:flex;flex-direction:column;gap:0.65rem;">
+                              <div style="display:flex;align-items:center;justify-content:space-between;font-size:0.78rem;">
+                                <span style="font-weight:600;">
+                                  ${escapeHtml(t.sender.queueTitle)} ·
+                                  <span class="font-mono" style="color:#10b981;">${state.queuedEntries.length} ${escapeHtml(t.sender.filesSelected)} (${formatBytes(totalQueueBytes)})</span>
+                                </span>
+                                ${
+                                  !isStreaming
+                                    ? `<button type="button" id="zs-btn-clear-queue" style="background:transparent;color:#f43f5e;font-size:0.75rem;font-weight:600;display:inline-flex;align-items:center;gap:0.25rem;">
+                                        ${svgIcon(UI_ICONS.trash, 13, '#f43f5e')}
+                                        <span>${escapeHtml(t.sender.clearQueue)}</span>
+                                      </button>`
+                                    : ''
+                                }
+                              </div>
+
+                              ${
+                                state.hasDirectoryInQueue || state.queuedEntries.length > 1
+                                  ? `<div style="padding:0.5rem 0.75rem;border-radius:0.75rem;background:rgba(14,165,233,0.1);border:1px solid rgba(14,165,233,0.22);font-size:0.75rem;color:${state.darkMode ? '#7dd3fc' : '#0369a1'};display:flex;align-items:center;justify-content:space-between;gap:0.5rem;">
+                                      <span style="display:inline-flex;align-items:center;gap:0.4rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                                        ${svgIcon(UI_ICONS.archive, 15, '#0ea5e9')}
+                                        <span>${escapeHtml(t.sender.zipStreamReady)}: <strong class="font-mono">${escapeHtml(state.rootFolderName ? state.rootFolderName + '.zip' : 'ZeroSeed-Archive.zip')}</strong></span>
+                                      </span>
+                                      <span class="font-mono" style="font-size:0.65rem;padding:0.1rem 0.4rem;border-radius:0.35rem;background:rgba(14,165,233,0.18);flex-shrink:0;">ZIP</span>
+                                    </div>`
+                                  : ''
+                              }
+
+                              <div style="max-height:8rem;overflow-y:auto;display:flex;flex-direction:column;gap:0.3rem;">
+                                ${state.queuedEntries
+                                  .slice(0, 20)
+                                  .map(
+                                    (it) => `
+                                  <div class="zs-subcard font-mono" style="padding:0.4rem 0.75rem;font-size:0.75rem;display:flex;justify-content:space-between;gap:0.5rem;border-radius:0.55rem;">
+                                    <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(it.relativePath)}</span>
+                                    <span style="color:${muted};font-size:0.7rem;flex-shrink:0;">${formatBytes(it.file.size)}</span>
+                                  </div>`
+                                  )
+                                  .join('')}
+                                ${
+                                  state.queuedEntries.length > 20
+                                    ? `<div class="font-mono" style="text-align:center;font-size:0.7rem;color:${muted};padding:0.2rem;">+ ${state.queuedEntries.length - 20} more</div>`
+                                    : ''
+                                }
+                              </div>
+
+                              <button type="button" id="zs-btn-start-send" ${!isTunnelOpen || isStreaming ? 'disabled' : ''} class="zs-btn-primary" style="width:100%;padding:0.78rem 1rem;font-size:0.88rem;">
+                                ${svgIcon(UI_ICONS.play, 15, '#ffffff')}
+                                <span>${escapeHtml(t.sender.startTransferBtn)}</span>
+                              </button>
+                            </div>`
+                          : ''
+                      }
+                    `
+                    : `
+                      <!-- Receiver Seed Input Box -->
+                      <div class="zs-subcard" style="padding:1rem;display:flex;flex-direction:column;gap:0.65rem;">
+                        <label for="zs-receiver-seed" style="display:block;font-size:0.75rem;font-weight:600;color:${muted};">${escapeHtml(t.receiver.seedInputLabel)}</label>
+                        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+                          <input id="zs-receiver-seed" type="text" value="${escapeHtml(state.receiverSeedInput)}" placeholder="${escapeHtml(t.receiver.seedInputPlaceholder)}" ${isStreaming || isTunnelOpen ? 'disabled' : ''} maxlength="64" class="zs-input font-mono" style="flex:1;min-width:12rem;" autocomplete="off" spellcheck="false" />
+                          ${
+                            !isTunnelOpen
+                              ? `<button type="button" id="zs-btn-connect-rx" class="zs-btn-sky" style="padding:0.7rem 1.2rem;font-size:0.85rem;">${escapeHtml(t.receiver.connectBtn)}</button>`
+                              : `<button type="button" id="zs-btn-disconnect-rx" style="padding:0.7rem 1rem;border-radius:0.75rem;background:rgba(244,63,94,0.12);color:#f43f5e;border:1px solid rgba(244,63,94,0.28);font-size:0.78rem;font-weight:600;">${escapeHtml(t.receiver.disconnectBtn)}</button>`
+                          }
+                        </div>
+                        <p style="font-size:0.72rem;color:${muted};margin:0;">
+                          ${escapeHtml(
+                            tm.phase === 'connecting_broker'
+                              ? t.receiver.connectingBroker
+                              : tm.phase === 'waiting_peer'
+                              ? t.receiver.waitingSenderOffer
+                              : tm.phase === 'connected'
+                              ? t.receiver.connectedReady
+                              : t.receiver.seedFormatHint
+                          )}
+                        </p>
+                      </div>
+
+                      ${
+                        state.incomingOffer
+                          ? `<div style="padding:1rem;border-radius:0.9rem;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.35);display:flex;flex-direction:column;gap:0.75rem;">
+                              <div style="display:flex;align-items:center;gap:0.75rem;">
+                                <div style="padding:0.6rem;border-radius:0.75rem;background:rgba(16,185,129,0.18);display:flex;align-items:center;justify-content:center;">
+                                  ${svgIcon(state.incomingOffer.isFolderArchive ? UI_ICONS.archive : UI_ICONS.file, 20, '#10b981')}
+                                </div>
+                                <div style="min-width:0;flex:1;">
+                                  <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;color:#10b981;">${escapeHtml(t.receiver.incomingOfferTitle)}</div>
+                                  <div class="font-mono" style="font-size:0.9rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(state.incomingOffer.fileName)}</div>
+                                  <div class="font-mono" style="font-size:0.75rem;color:${muted};">${formatBytes(state.incomingOffer.fileSize)}</div>
+                                </div>
+                              </div>
+                              <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+                                ${
+                                  diskSupported
+                                    ? `<button type="button" id="zs-btn-accept-disk" class="zs-btn-primary" style="flex:1;padding:0.7rem 1rem;font-size:0.8rem;">
+                                        ${svgIcon(UI_ICONS.hardDrive, 15, '#ffffff')}
+                                        <span>${escapeHtml(t.receiver.acceptSaveDiskBtn)}</span>
+                                      </button>
+                                      <button type="button" id="zs-btn-accept-ram" class="zs-btn-tonal" style="padding:0.7rem 0.9rem;font-size:0.78rem;">${escapeHtml(t.receiver.acceptRamFallbackBtn)}</button>`
+                                    : `<button type="button" id="zs-btn-accept-ram" class="zs-btn-primary" style="width:100%;padding:0.7rem 1rem;font-size:0.82rem;">
+                                        ${svgIcon(UI_ICONS.download, 15, '#ffffff')}
+                                        <span>${escapeHtml(t.receiver.acceptRamFallbackBtn)}</span>
+                                      </button>`
+                                }
+                              </div>
+                            </div>`
+                          : ''
+                      }
+                    `
+                }
+
+                <!-- Progressive Inline Progress Strip -->
+                <div id="zs-telemetry-panel" style="display:${showProgressStrip ? 'block' : 'none'};padding-top:1rem;border-top:1px solid rgba(148,163,184,0.16);">
                   ${buildTelemetryCardInnerHtml()}
                 </div>
 
-                <!-- Encrypted Instant Clipboard -->
-                <div class="zs-card" style="padding:1.25rem;">
-                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.65rem;">
-                    <h3 style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;margin:0;">
-                      💬 ${escapeHtml(t.clipboard.title)}
-                    </h3>
-                    <span class="font-mono" style="font-size:0.65rem;padding:0.15rem 0.45rem;border-radius:0.35rem;background:rgba(14,165,233,0.12);color:#38bdf8;border:1px solid rgba(14,165,233,0.25);">
-                      ${escapeHtml(t.clipboard.encryptedBadge)}
-                    </span>
-                  </div>
+                <!-- Progressive Collapsible Encrypted Note Drawer (Only when connected) -->
+                ${
+                  isTunnelOpen
+                    ? `<div style="padding-top:0.85rem;border-top:1px solid rgba(148,163,184,0.16);">
+                        <button type="button" id="zs-btn-toggle-notes" class="zs-btn-ghost" style="width:100%;justify-content:space-between;padding:0.3rem 0.25rem;font-size:0.78rem;font-weight:600;color:${state.darkMode ? '#cbd5e1' : '#475569'};">
+                          <span style="display:inline-flex;align-items:center;gap:0.45rem;">
+                            ${svgIcon(UI_ICONS.message, 15, '#0ea5e9')}
+                            <span>${escapeHtml(t.clipboard.toggleLabel)}</span>
+                            ${
+                              state.clipboardItems.length > 0
+                                ? `<span class="font-mono" style="padding:0.1rem 0.45rem;border-radius:9999px;font-size:0.65rem;background:rgba(14,165,233,0.15);color:#0ea5e9;">${state.clipboardItems.length}</span>`
+                                : ''
+                            }
+                          </span>
+                          ${state.notesOpen ? svgIcon(UI_ICONS.chevronUp, 15, muted) : svgIcon(UI_ICONS.chevronDown, 15, muted)}
+                        </button>
 
-                  <textarea id="zs-clipboard-input" rows="2" placeholder="${escapeHtml(t.clipboard.placeholder)}" ${!isTunnelOpen ? 'disabled' : ''} maxlength="${SITE_CONFIG.maxClipboardChars}" class="zs-input font-mono" style="font-size:0.78rem;resize:none;">${escapeHtml(state.clipboardDraft)}</textarea>
-
-                  <div style="display:flex;justify-content:flex-end;gap:0.5rem;margin-top:0.5rem;">
-                    ${
-                      state.clipboardItems.length > 0
-                        ? `<button type="button" id="zs-btn-clear-clip" class="zs-btn-ghost" style="padding:0.4rem 0.75rem;font-size:0.75rem;color:#fb7185;">${escapeHtml(t.clipboard.clearBtn)}</button>`
-                        : ''
-                    }
-                    <button type="button" id="zs-btn-send-clip" ${!isTunnelOpen ? 'disabled' : ''} class="zs-btn-sky" style="padding:0.45rem 0.95rem;font-size:0.78rem;">
-                      🔒 ${escapeHtml(t.clipboard.sendBtn)}
-                    </button>
-                  </div>
-
-                  <div style="margin-top:0.75rem;max-height:9rem;overflow-y:auto;display:flex;flex-direction:column;gap:0.45rem;">
-                    ${
-                      state.clipboardItems.length === 0
-                        ? `<div style="text-align:center;font-size:0.72rem;color:#64748b;padding:0.4rem;">${escapeHtml(t.clipboard.emptyState)}</div>`
-                        : state.clipboardItems
-                            .map(
-                              (item) => `
-                          <div class="zs-subcard" style="padding:0.6rem 0.75rem;font-size:0.75rem;">
-                            <div class="font-mono" style="display:flex;justify-content:space-between;font-size:0.65rem;margin-bottom:0.25rem;">
-                              <span style="font-weight:700;color:${item.direction === 'sent' ? '#10b981' : '#38bdf8'};">${escapeHtml(item.direction === 'sent' ? t.clipboard.sentTag : t.clipboard.receivedTag)}</span>
-                              <button type="button" data-copy-clip="${escapeHtml(item.id)}" style="background:transparent;color:#94a3b8;font-size:0.65rem;">
-                                ${state.copiedClipId === item.id ? '✓ ' + escapeHtml(t.clipboard.copiedBtn) : '📋 ' + escapeHtml(t.clipboard.copyBtn)}
-                              </button>
-                            </div>
-                            <pre class="font-mono" style="margin:0;white-space:pre-wrap;word-break:break-all;font-size:0.75rem;">${escapeHtml(item.text)}</pre>
-                          </div>`
-                            )
-                            .join('')
-                    }
-                  </div>
-                </div>
-              </section>
-            </div>
+                        ${
+                          state.notesOpen
+                            ? `<div style="margin-top:0.75rem;display:flex;flex-direction:column;gap:0.6rem;">
+                                <textarea id="zs-clipboard-input" rows="2" placeholder="${escapeHtml(t.clipboard.placeholder)}" maxlength="${SITE_CONFIG.maxClipboardChars}" class="zs-input font-mono" style="font-size:0.78rem;resize:none;padding:0.6rem 0.75rem;">${escapeHtml(state.clipboardDraft)}</textarea>
+                                <div style="display:flex;justify-content:flex-end;gap:0.45rem;">
+                                  ${
+                                    state.clipboardItems.length > 0
+                                      ? `<button type="button" id="zs-btn-clear-clip" class="zs-btn-ghost" style="padding:0.35rem 0.65rem;font-size:0.75rem;color:#f43f5e;">${escapeHtml(t.clipboard.clearBtn)}</button>`
+                                      : ''
+                                  }
+                                  <button type="button" id="zs-btn-send-clip" ${!state.clipboardDraft.trim() ? 'disabled' : ''} class="zs-btn-sky" style="padding:0.4rem 0.85rem;font-size:0.78rem;">${escapeHtml(t.clipboard.sendBtn)}</button>
+                                </div>
+                                ${
+                                  state.clipboardItems.length > 0
+                                    ? `<div style="max-height:9rem;overflow-y:auto;display:flex;flex-direction:column;gap:0.4rem;">
+                                        ${state.clipboardItems
+                                          .map(
+                                            (item) => `
+                                          <div class="zs-subcard" style="padding:0.55rem 0.75rem;font-size:0.75rem;">
+                                            <div class="font-mono" style="display:flex;justify-content:space-between;font-size:0.65rem;margin-bottom:0.2rem;">
+                                              <span style="font-weight:700;color:${item.direction === 'sent' ? '#10b981' : '#0ea5e9'};">${escapeHtml(item.direction === 'sent' ? t.clipboard.sentTag : t.clipboard.receivedTag)}</span>
+                                              <button type="button" data-copy-clip="${escapeHtml(item.id)}" style="background:transparent;color:${muted};font-size:0.65rem;display:inline-flex;align-items:center;gap:0.25rem;">
+                                                ${state.copiedClipId === item.id ? svgIcon(UI_ICONS.check, 12, '#10b981') : svgIcon(UI_ICONS.copy, 12)}
+                                                <span>${escapeHtml(state.copiedClipId === item.id ? t.clipboard.copiedBtn : t.clipboard.copyBtn)}</span>
+                                              </button>
+                                            </div>
+                                            <pre class="font-mono" style="margin:0;white-space:pre-wrap;word-break:break-all;font-size:0.75rem;">${escapeHtml(item.text)}</pre>
+                                          </div>`
+                                          )
+                                          .join('')}
+                                      </div>`
+                                    : ''
+                                }
+                              </div>`
+                            : ''
+                        }
+                      </div>`
+                    : ''
+                }
+              </div>
+            </section>
           </main>
         </div>
 
-        <!-- Footer & 3 Info Cards -->
-        <footer style="margin-top:2rem;border-top:1px solid rgba(148,163,184,0.18);padding:1.75rem 0;">
-          <div class="zs-container">
-            <div class="zs-cards-grid">
-              <div class="zs-subcard" style="padding:1rem;">
-                <div style="font-size:0.75rem;font-weight:800;text-transform:uppercase;color:#38bdf8;margin-bottom:0.35rem;">⚡ ${escapeHtml(t.cards.card1Title)}</div>
-                <p style="font-size:0.75rem;color:#94a3b8;margin:0;line-height:1.5;">${escapeHtml(t.cards.card1Desc)}</p>
-              </div>
-              <div class="zs-subcard" style="padding:1rem;">
-                <div style="font-size:0.75rem;font-weight:800;text-transform:uppercase;color:#10b981;margin-bottom:0.35rem;">🛡️ ${escapeHtml(t.cards.card2Title)}</div>
-                <p style="font-size:0.75rem;color:#94a3b8;margin:0;line-height:1.5;">${escapeHtml(t.cards.card2Desc)}</p>
-              </div>
-              <div class="zs-subcard" style="padding:1rem;">
-                <div style="font-size:0.75rem;font-weight:800;text-transform:uppercase;color:#a78bfa;margin-bottom:0.35rem;">💾 ${escapeHtml(t.cards.card3Title)}</div>
-                <p style="font-size:0.75rem;color:#94a3b8;margin:0;line-height:1.5;">${escapeHtml(t.cards.card3Desc)}</p>
-              </div>
-            </div>
-
-            <div style="margin-top:1.25rem;padding-top:1rem;border-top:1px solid rgba(148,163,184,0.12);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:0.75rem;font-size:0.72rem;color:#94a3b8;">
-              <div class="font-mono" style="display:flex;flex-wrap:wrap;gap:0.6rem;">
-                <span style="padding:0.2rem 0.65rem;border-radius:9999px;background:rgba(148,163,184,0.12);">🟢 ${escapeHtml(t.footer.stunStatus)}</span>
-                <span style="padding:0.2rem 0.65rem;border-radius:9999px;background:rgba(148,163,184,0.12);">
-                  ${
-                    state.brokerStatus.locked
-                      ? '🔒 ' + escapeHtml(t.sender.roomLockedBadge)
-                      : (state.brokerStatus.connected ? '🟢 ' : '🟡 ') +
-                        escapeHtml(t.footer.brokerStatus) +
-                        ' ' +
-                        escapeHtml(state.brokerStatus.connected ? t.footer.brokerConnected : t.footer.brokerStandby)
-                  }
-                </span>
-              </div>
-              <div style="color:#10b981;font-weight:600;">
-                🚫 ${escapeHtml(t.footer.zeroCookieStatement)}
-              </div>
-            </div>
+        <!-- Simplified Single-Row Footer -->
+        <footer style="margin-top:2rem;border-top:1px solid rgba(148,163,184,0.16);padding:1.25rem 0;">
+          <div class="zs-container" style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:0.5rem;font-size:0.75rem;color:${muted};">
+            <span style="display:inline-flex;align-items:center;gap:0.4rem;">
+              ${svgIcon(UI_ICONS.shield, 14, '#10b981')}
+              <span>${escapeHtml(t.footer.summary)}</span>
+            </span>
+            ${
+              tm.fingerprint
+                ? `<span class="zs-pill font-mono" style="font-size:0.68rem;">
+                    ${escapeHtml(t.telemetry.fingerprintLabel)}: <strong style="color:#10b981;">${escapeHtml(tm.fingerprint)}</strong>
+                  </span>`
+                : ''
+            }
           </div>
         </footer>
 
@@ -3205,17 +3304,25 @@
     on('zs-btn-reconnect', () => {
       if (state.role === 'sender') {
         startSessionWithSeed(state.senderSeed, 'sender');
-      } else if (state.receiverSeedInput) {
-        startSessionWithSeed(state.receiverSeedInput, 'receiver');
+      } else {
+        const norm = normalizeSeed(state.receiverSeedInput);
+        if (isValidSeedFormat(norm)) {
+          state.receiverSeedInput = norm;
+          startSessionWithSeed(norm, 'receiver');
+        }
       }
     });
 
-    on('zs-tab-send', () => {
+    on('zs-tab-send', async () => {
       if (state.role !== 'sender') {
+        if (dataChannel && dataChannel.readyState === 'open') {
+          await notifyPeerAndDisconnect(true);
+        }
         state.role = 'sender';
         state.errorCode = null;
         state.incomingOffer = null;
         state.clipboardItems = [];
+        state.notesOpen = false;
         revokeActiveBlobUrl();
         if (receiverActiveState) {
           receiverActiveState.writer.abort();
@@ -3226,19 +3333,24 @@
       }
     });
 
-    on('zs-tab-receive', () => {
+    on('zs-tab-receive', async () => {
       if (state.role !== 'receiver') {
+        if (dataChannel && dataChannel.readyState === 'open') {
+          await notifyPeerAndDisconnect(true);
+        } else {
+          fullDisconnect();
+        }
         state.role = 'receiver';
         state.errorCode = null;
         state.incomingOffer = null;
         state.clipboardItems = [];
+        state.notesOpen = false;
         revokeActiveBlobUrl();
         if (receiverActiveState) {
           receiverActiveState.writer.abort();
           receiverActiveState = null;
         }
         senderAckMap.clear();
-        fullDisconnect();
         state.telemetry.phase = 'idle';
         state.telemetry.topicHashHex = '';
         state.telemetry.fingerprint = '';
@@ -3259,10 +3371,14 @@
       } catch (_e) {}
     });
 
-    on('zs-btn-regen-seed', () => {
+    on('zs-btn-regen-seed', async () => {
+      if (dataChannel && dataChannel.readyState === 'open') {
+        await notifyPeerAndDisconnect(true);
+      }
       state.senderSeed = generateRandomSeed();
       senderAckMap.clear();
       state.clipboardItems = [];
+      state.notesOpen = false;
       revokeActiveBlobUrl();
       if (receiverActiveState) {
         receiverActiveState.writer.abort();
@@ -3345,19 +3461,30 @@
       startSessionWithSeed(norm, 'receiver');
     });
 
-    on('zs-btn-disconnect-rx', () => {
-      fullDisconnect();
+    on('zs-btn-disconnect-rx', async () => {
+      await notifyPeerAndDisconnect(true);
+      state.errorCode = null;
+      state.incomingOffer = null;
+      state.notesOpen = false;
       state.telemetry.phase = 'idle';
+      state.telemetry.roomLocked = false;
       renderApp();
     });
 
     on('zs-btn-accept-disk', () => acceptOffer(true));
     on('zs-btn-accept-ram', () => acceptOffer(false));
 
+    on('zs-btn-toggle-notes', () => {
+      state.notesOpen = !state.notesOpen;
+      renderApp();
+    });
+
     const clipInput = document.getElementById('zs-clipboard-input');
     if (clipInput) {
       clipInput.oninput = (e) => {
         state.clipboardDraft = e.target.value;
+        const sendClipBtn = document.getElementById('zs-btn-send-clip');
+        if (sendClipBtn) sendClipBtn.disabled = !state.clipboardDraft.trim();
       };
     }
 
@@ -3503,6 +3630,9 @@
       const extracted = await extractDroppedEntries(e.dataTransfer);
       if (extracted.entries.length > 0) {
         if (state.role !== 'sender') {
+          if (dataChannel && dataChannel.readyState === 'open') {
+            await notifyPeerAndDisconnect(true);
+          }
           state.role = 'sender';
           startSessionWithSeed(state.senderSeed, 'sender');
         }
@@ -3516,15 +3646,18 @@
     renderApp();
   });
 
-  window.addEventListener('pagehide', () => {
-    fullDisconnect();
+  function handleZeroTraceUnload() {
+    notifyPeerAndDisconnect(false);
     if (receiverActiveState) {
       receiverActiveState.writer.abort();
       receiverActiveState = null;
     }
     senderAckMap.clear();
     state.clipboardItems = [];
-  });
+  }
+
+  window.addEventListener('pagehide', handleZeroTraceUnload);
+  window.addEventListener('beforeunload', handleZeroTraceUnload);
 
   // Boot application immediately on DOM ready
   function boot() {

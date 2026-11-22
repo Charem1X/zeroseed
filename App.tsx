@@ -36,7 +36,7 @@ const ZeroSeedAppContent: React.FC = () => {
         <TransferWorkspace transfer={transfer} />
       </div>
 
-      <Footer brokerStatus={transfer.brokerStatus} />
+      <Footer fingerprint={transfer.telemetry.fingerprint} />
 
       <HowItWorksModal
         open={howItWorksOpen}

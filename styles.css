@@ -1,4 +1,4 @@
-/* ZeroSeed.io — Precompiled Tailwind & Theme Stylesheet */
+/* ZeroSeed.io — Clean Single-Column Stylesheet */
 *, ::before, ::after {
   box-sizing: border-box;
   border-width: 0;
@@ -38,14 +38,14 @@ code, pre, .font-mono {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(100, 116, 139, 0.35);
+  background: rgba(100, 116, 139, 0.3);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(16, 185, 129, 0.55);
+  background: rgba(16, 185, 129, 0.5);
 }
 
-/* Layout & App Shell */
+/* Shell & Containers */
 .zs-shell {
   min-height: 100vh;
   display: flex;
@@ -54,11 +54,17 @@ code, pre, .font-mono {
 }
 
 .zs-container {
-  max-width: 72rem;
+  max-width: 48rem;
   margin-left: auto;
   margin-right: auto;
   padding-left: 1.25rem;
   padding-right: 1.25rem;
+}
+
+.zs-focus-wrap {
+  max-width: 36rem;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* Navbar */
@@ -68,15 +74,15 @@ code, pre, .font-mono {
   z-index: 30;
   backdrop-filter: blur(12px);
   background-color: rgba(255, 255, 255, 0.85);
-  border-bottom: 1px solid rgba(226, 232, 240, 0.85);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
 }
 html.dark .zs-navbar {
-  background-color: rgba(9, 13, 22, 0.88);
-  border-bottom-color: rgba(30, 41, 59, 0.85);
+  background-color: rgba(9, 13, 22, 0.85);
+  border-bottom-color: rgba(30, 41, 59, 0.75);
 }
 
 .zs-navbar-inner {
-  height: 4rem;
+  height: 3.75rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -87,94 +93,131 @@ html.dark .zs-navbar {
 .zs-card {
   background-color: #ffffff;
   border: 1px solid rgba(226, 232, 240, 0.95);
-  border-radius: 1rem;
-  box-shadow: 0 12px 32px -8px rgba(15, 23, 42, 0.06);
+  border-radius: 1.25rem;
+  box-shadow: 0 12px 32px -12px rgba(15, 23, 42, 0.08);
 }
 html.dark .zs-card {
-  background-color: rgba(15, 23, 42, 0.88);
-  border-color: rgba(30, 41, 59, 0.95);
-  box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.45);
+  background-color: rgba(15, 23, 42, 0.86);
+  border-color: rgba(30, 41, 59, 0.9);
+  box-shadow: 0 20px 44px -14px rgba(0, 0, 0, 0.55);
 }
 
 .zs-subcard {
   background-color: #f8fafc;
-  border: 1px solid rgba(226, 232, 240, 0.9);
+  border: 1px solid rgba(226, 232, 240, 0.85);
   border-radius: 0.875rem;
 }
 html.dark .zs-subcard {
-  background-color: rgba(2, 6, 23, 0.75);
+  background-color: rgba(2, 6, 23, 0.65);
+  border-color: rgba(30, 41, 59, 0.85);
+}
+
+.zs-divider {
+  height: 1px;
+  background-color: rgba(148, 163, 184, 0.16);
+  margin: 1rem 0;
+}
+
+/* Segmented Tabs & Status Pill */
+.zs-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.zs-tabs {
+  display: inline-flex;
+  padding: 0.2rem;
+  border-radius: 0.75rem;
+  background-color: #f1f5f9;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+html.dark .zs-tabs {
+  background-color: rgba(2, 6, 23, 0.7);
   border-color: rgba(30, 41, 59, 0.9);
 }
 
-/* Grid Systems */
-.zs-main-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1.5rem;
-  align-items: start;
+.zs-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.95rem;
+  border-radius: 0.55rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  background: transparent;
+  color: #64748b;
+  transition: all 0.15s ease;
 }
-@media (min-width: 1024px) {
-  .zs-main-grid {
-    grid-template-columns: 7fr 5fr;
-  }
+html.dark .zs-tab {
+  color: #94a3b8;
+}
+.zs-tab-active {
+  background-color: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+html.dark .zs-tab-active {
+  background-color: #1e293b;
+  color: #f8fafc;
 }
 
-.zs-cards-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1rem;
+.zs-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  background-color: rgba(148, 163, 184, 0.12);
+  color: #64748b;
+  white-space: nowrap;
 }
-@media (min-width: 768px) {
-  .zs-cards-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
+html.dark .zs-pill {
+  color: #cbd5e1;
 }
 
+/* Grids */
 .zs-grid-2 {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 0.75rem;
 }
 
-.zs-grid-3 {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.5rem;
-}
-
-.zs-grid-4 {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.5rem;
-}
-@media (min-width: 640px) {
-  .zs-grid-4 {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
-/* Interactive Buttons & Inputs */
+/* Buttons & Inputs */
 button {
   cursor: pointer;
   font-family: inherit;
 }
 button:disabled {
   cursor: not-allowed;
-  opacity: 0.55;
+  opacity: 0.5;
 }
 
 .zs-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
   background-color: #059669;
   color: #ffffff;
   font-weight: 700;
   border-radius: 0.75rem;
-  transition: background-color 0.15s ease, transform 0.1s ease;
+  transition: background-color 0.15s ease;
 }
 .zs-btn-primary:hover:not(:disabled) {
   background-color: #10b981;
 }
 
 .zs-btn-sky {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
   background-color: #0284c7;
   color: #ffffff;
   font-weight: 700;
@@ -185,14 +228,33 @@ button:disabled {
   background-color: #0ea5e9;
 }
 
+.zs-btn-tonal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  background-color: rgba(148, 163, 184, 0.14);
+  color: inherit;
+  font-weight: 600;
+  border-radius: 0.75rem;
+  transition: background-color 0.15s ease;
+}
+.zs-btn-tonal:hover:not(:disabled) {
+  background-color: rgba(148, 163, 184, 0.24);
+}
+
 .zs-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
   background-color: transparent;
   color: inherit;
   border-radius: 0.5rem;
   transition: background-color 0.15s ease;
 }
 .zs-btn-ghost:hover:not(:disabled) {
-  background-color: rgba(148, 163, 184, 0.15);
+  background-color: rgba(148, 163, 184, 0.14);
 }
 
 .zs-input {
@@ -201,33 +263,33 @@ button:disabled {
   color: #0f172a;
   border: 1px solid #cbd5e1;
   border-radius: 0.75rem;
-  padding: 0.75rem 1rem;
-  font-size: 0.95rem;
+  padding: 0.7rem 0.95rem;
+  font-size: 0.92rem;
   outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 html.dark .zs-input {
-  background-color: #0f172a;
+  background-color: #090d16;
   color: #f8fafc;
   border-color: #334155;
 }
 .zs-input:focus {
   border-color: #10b981;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.14);
 }
 
 /* Dropzone */
 .zs-dropzone {
-  border: 2px dashed #cbd5e1;
+  border: 1.5px dashed #cbd5e1;
   border-radius: 1rem;
-  padding: 1.35rem;
+  padding: 1.35rem 1rem;
   text-align: center;
   transition: border-color 0.2s ease, background-color 0.2s ease;
-  background-color: rgba(248, 250, 252, 0.5);
+  background-color: rgba(248, 250, 252, 0.45);
 }
 html.dark .zs-dropzone {
   border-color: #334155;
-  background-color: rgba(2, 6, 23, 0.45);
+  background-color: rgba(2, 6, 23, 0.38);
 }
 .zs-dropzone:hover {
   border-color: rgba(16, 185, 129, 0.65);
@@ -236,7 +298,7 @@ html.dark .zs-dropzone {
 /* Progress Bar */
 .zs-progress-track {
   width: 100%;
-  height: 0.65rem;
+  height: 0.55rem;
   border-radius: 9999px;
   background-color: #e2e8f0;
   overflow: hidden;
@@ -250,12 +312,12 @@ html.dark .zs-progress-track {
   transition: width 0.15s ease;
 }
 
-/* Modal Backdrop */
+/* Modals */
 .zs-modal-overlay {
   position: fixed;
   inset: 0;
   z-index: 50;
-  background-color: rgba(2, 6, 23, 0.75);
+  background-color: rgba(2, 6, 23, 0.72);
   backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
@@ -265,7 +327,7 @@ html.dark .zs-progress-track {
 
 .zs-modal-box {
   width: 100%;
-  max-width: 44rem;
+  max-width: 40rem;
   max-height: 88vh;
   display: flex;
   flex-direction: column;
@@ -274,7 +336,7 @@ html.dark .zs-progress-track {
 
 @keyframes zsPulse {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+  50% { opacity: 0.35; }
 }
 .zs-pulse {
   animation: zsPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
