@@ -1,63 +1,63 @@
-# ZeroSeed.io — Sunucusuz, Uçtan Uca Şifreli P2P Dosya & Klasör Transferi
+# ZeroSeed.io — Serverless, End-to-End Encrypted P2P File & Folder Transfer
 
-**ZeroSeed.io**, hesap açmadan, hiçbir bulut sunucusuna dosya yüklemeden ve cihazda hiçbir iz (çerez, log, geçmiş) bırakmadan yalnızca tek kullanımlık bir **bağlantı kodu (Seed)** paylaşarak tarayıcılar arası doğrudan (**Peer-to-Peer**) büyük dosya, klasör ve metin aktarımı sağlayan web uygulamasıdır.
+**ZeroSeed.io** is a browser-to-browser (**Peer-to-Peer**) web application for transferring large files, entire folders, and instant text snippets directly between devices using a one-time cryptographic **Seed**—with no accounts, no cloud uploads, no cookies, and zero server-side storage.
 
-> **Sıfır Kurulumla Çalışır:** Kök dizindeki `index.html`, `styles.css` ve `app.bundle.js` dosyaları hiçbir derleme aracı veya arka uç sunucusu gerektirmeden doğrudan tarayıcıda ve **GitHub Pages** üzerinde çalışır.
-
----
-
-## Öne Çıkan Özellikler
-
-- **%100 Tarayıcıdan Tarayıcıya (WebRTC):** Dosyalar hiçbir sunucuya yüklenmez; cihazlar doğrudan `RTCDataChannel` üzerinden haberleşir.
-- **Sınırsız Boyut & Doğrudan Diske Yazma:** Destekleyen tarayıcılarda **File System Access API** (`FileSystemWritableFileStream`) ile çoklu GB boyutundaki dosyalar RAM şişmeden doğrudan seçilen klasöre yazılır (desteklemeyen tarayıcılarda güvenli `Blob` indirme yedeği devreye girer).
-- **Klasör Sürükle-Bırak & Anlık ZIP Akışı:** Sayfanın herhangi bir yerine sürüklenen klasörler veya çoklu dosyalar belleği doldurmadan anlık olarak ZIP akışına dönüştürülür, şifrelenir ve gönderilir.
-- **Koptuğu Yerden Devam Etme (Resume / ACK):** Alıcı her 16 parçada bir onay (ACK) gönderir. Bağlantı anlık koptuğunda sekmeler açıkken aynı kodla yeniden bağlanılarak tekil dosyalar kaldığı parçadan devam eder.
-- **Otomatik Çoklu Dil (TR / EN) & Karanlık/Aydınlık Tema:** `navigator.language` değerine göre Türkçe veya İngilizce otomatik başlar; dil ve tema tercihi gizlilik gereği yalnızca geçici bellekte tutulur.
-- **QR Kod & Şifreli Hızlı Pano:** Tek kullanımlık bağlantı kodu mobil cihazlar için anlık QR kod olarak üretilir; bağlı cihazlar arasında uçtan uca şifreli metin/bağlantı paylaşımı yapılabilir.
+> **Zero-Setup Ready:** The root `index.html`, `styles.css`, and `app.bundle.js` files run directly in any modern browser or on **GitHub Pages** with no build step or backend server required.
 
 ---
 
-## Güvenlik Mimarisi
+## Key Features
 
-ZeroSeed.io, yalnızca tarayıcının donanım hızlandırmalı yerleşik **Web Crypto API (`window.crypto.subtle`)** arayüzünü kullanır:
-
-- **Zorunlu CSPRNG Rastgele Seed:** Kullanıcıların tahmin edilebilir zayıf kodlar seçmesini engellemek için gönderici tarafında yalnızca `window.crypto.getRandomValues()` ile 256 kelimelik evrensel ASCII havuzdan kod üretilir (örn. `8412-iron-forest-cloud`).
-- **İkili Türetme + HKDF Anahtar Ayrımı:**
-  - **Kör Sinyalizasyon Kanalı:** `SHA-256(seed)` özetinin ilk 128 biti (`p2p-io/v1/<32_hex>`) kullanılır; sinyal sunucusu gerçek kodu asla göremez.
-  - **İzole Şifreleme Anahtarları:** `PBKDF2-HMAC-SHA256` (`150.000` iterasyon) ana sırrı **HKDF-SHA-256** ile iki ayrı dışa aktarılamaz (`extractable: false`) 256-bit `AES-GCM` anahtarına bölünür: sinyalizasyon için `signalKey`, veri/kontrol aktarımı için `transferKey`.
-- **Parça Bazlı AES-GCM-256 & AAD Bütünlüğü:** Her 64 KB parça `[4B Big-Endian chunkIndex + 12B IV + Şifreli Veri + 16B GCM Auth Tag]` formatında gönderilir. `fileId` ve `chunkIndex` GCM AAD olarak doğrulanır; oturum başına 8 byte CSPRNG önek + 4 byte sayaç ile IV çakışması engellenir. Doğrulama hatasında veya sıra dışı parça algılandığında aktarım anında durdurulur.
-- **Yedekli Kör Sinyalizasyon & Oda Kilitleme (Anti-Hijack):** HiveMQ, EMQX ve Mosquitto WSS MQTT v3.1.1 sunucuları arasında 3 saniyelik otomatik geçiş yapılır. Tüm WebRTC SDP/ICE mesajları şifreli, nonce tekrar korumalı ve 60 saniye zaman pencereli olarak iletilir. İlk alıcıyla `DataChannel` açıldığı saniye sinyal sunucusuyla bağlantı kesilerek oda dışarıya kilitlenir.
-- **İstemci & Tarayıcı Sertleştirmesi:**
-  - Dosya adlarında yol geçişi (`../`), Windows cihaz adları ve Unicode BiDi/RLO (`U+202E`) sahteciliğine karşı temizleme (`sanitizeFileName`).
-  - ZIP akışında Zip Slip koruması (`sanitizeArchivePath`), klasör derinliği (`32`) ve dosya sayısı (`10.000`) sınırları.
-  - Same-Origin Blob XSS'i önlemek için zorunlu `application/octet-stream` MIME tipi, RAM yedek modunda `512 MB` üst sınırı ve alıcıda boyut taşması koruması.
-  - Katı `Content-Security-Policy` (CSP), `no-referrer` politikası ve sekme kapanışında (`pagehide`) tüm `blob:` URL'leri ile geçici belleğin temizlenmesi.
-  - **Sıfır Kalıcı Veri:** `localStorage`, `sessionStorage`, `IndexedDB`, çerez veya URL `#hash` kesinlikle kullanılmaz.
+- **100% Browser-to-Browser (WebRTC):** Files never touch an intermediate storage server; payloads stream directly over `RTCDataChannel`.
+- **No Size Limits & Direct-to-Disk Streaming:** Uses the **File System Access API** (`FileSystemWritableFileStream`) on supported browsers to write multi-gigabyte transfers straight to disk with minimal RAM usage, with an automatic safe `Blob` download fallback for Firefox/Safari.
+- **Folder Drag-and-Drop & Real-Time ZIP Streaming:** Drop files or nested folders anywhere on the page to stream them on the fly as an encrypted ZIP archive without buffering the full archive in memory.
+- **Chunk ACK & Mid-File Resume:** The receiver emits an acknowledgment (`ACK`) every 16 chunks. If a connection drops momentarily while tabs remain open, reconnecting with the same Seed seamlessly resumes single-file transfers from the last confirmed chunk.
+- **Automatic Bilingual UI (EN / TR) & Theme Toggle:** Automatically detects `navigator.language` (Turkish or English) and supports Dark/Light modes—kept strictly in volatile React/JS memory with zero cookies or storage writes.
+- **QR Code Pairing & Encrypted Instant Clipboard:** Generates an offline SVG QR code for quick mobile pairing and includes an end-to-end encrypted text/snippet sharing box once connected.
 
 ---
 
-## Hızlı Kullanım ve Yayınlama
+## Security Architecture
 
-### 1. Doğrudan Tarayıcıda Açma (Kurulumsuz)
-Depoyu indirin ve `index.html` dosyasına çift tıklayarak modern bir tarayıcıda açın.
+ZeroSeed.io relies strictly on the browser's hardware-accelerated native **Web Crypto API (`window.crypto.subtle`)**:
 
-### 2. GitHub Pages ile Yayınlama
-Yalnızca şu 3 dosya (veya kök dizindeki tüm dosyalar) tek başına çalışmak için yeterlidir:
+- **Mandatory CSPRNG Random Seeds:** Custom user-typed seeds are disabled on the sender side to eliminate weak/guessable passwords. Every session generates a readable ASCII seed via `window.crypto.getRandomValues()` from a 256-word keyboard-safe English pool (e.g., `8412-iron-forest-cloud`).
+- **Dual Derivation + HKDF Key Separation:**
+  - **Blind Signaling Channel:** Derived from the first 128 bits of `SHA-256(seed)` (`p2p-io/v1/<32_hex>`). Public signaling brokers never see the actual seed.
+  - **Isolated Non-Extractable Keys:** Master secret bits derived via `PBKDF2-HMAC-SHA256` (`150,000` iterations) are split with **HKDF-SHA-256** into two separate non-extractable (`extractable: false`) 256-bit `AES-GCM` keys: `signalKey` for signaling and `transferKey` for DataChannel control and file chunks.
+- **Chunk-Level AES-GCM-256 & Authenticated Headers (AAD):** Every 64 KB chunk is framed as `[4B Big-Endian chunkIndex + 12B IV + Ciphertext + 16B GCM Auth Tag]`. Both `fileId` and `chunkIndex` are cryptographically bound via GCM `additionalData` (AAD), and an 8-byte CSPRNG session prefix combined with the 4-byte `chunkIndex` guarantees collision-free IVs across up to 2³² chunks. Any Auth Tag failure, out-of-order chunk, or byte-size mismatch aborts the transfer immediately.
+- **Redundant Blind Signaling & Room Locking (Anti-Hijack):** Automatically fails over across HiveMQ, EMQX, and Mosquitto public WSS MQTT v3.1.1 brokers (3-second timeout, capped retry attempts). All WebRTC SDP/ICE messages are encrypted, bound to `topicId` + `senderId` via AAD, protected against replays via 12-byte CSPRNG nonces and a 60-second freshness window, and checked for valid DTLS `sha-256` fingerprints. The instant the first `RTCDataChannel` opens, both peers unsubscribe and disconnect from MQTT, locking the room.
+- **Client & Browser Hardening:**
+  - Filename sanitization (`sanitizeFileName`) against path traversal (`../`), Windows reserved device names (`CON`, `NUL`, etc.), control characters, and Unicode BiDi/RLO (`U+202E`) spoofing.
+  - Archive Zip Slip protection (`sanitizeArchivePath`) with directory recursion depth (`32`) and entry count (`10,000`) caps.
+  - Forced `application/octet-stream` Blob MIME type to prevent Same-Origin Blob XSS, a `512 MB` safety cap in RAM fallback mode, and strict received-byte upper bounds.
+  - Strict `Content-Security-Policy` (CSP), `no-referrer` policy, and automatic `pagehide` cleanup that revokes `blob:` URLs and clears volatile session data.
+  - **Strict Zero Persistence:** Never writes to `localStorage`, `sessionStorage`, `IndexedDB`, cookies, or URL `#hash`.
+
+---
+
+## Quick Start & Deployment
+
+### 1. Run Directly in Browser (No Build Needed)
+Download the repository and double-click `index.html` to open it in any modern browser.
+
+### 2. Deploy to GitHub Pages
+Only these 3 files (or all root files) are needed for static hosting:
 - `index.html`
 - `styles.css`
 - `app.bundle.js`
 
-GitHub deponuzda **Settings → Pages → Source: Deploy from a branch (`main` / `root`)** seçeneğini etkinleştirdiğinizde uygulama doğrudan HTTPS üzerinden yayına girer.
+Enable **Settings → Pages → Source: Deploy from a branch (`main` / `root`)** in your GitHub repository to host it live over HTTPS.
 
-### 3. Geliştirici Ortamı (Vite + React + TypeScript)
-İsterseniz kaynak TypeScript/React dosyalarını yerel olarak derleyebilirsiniz:
+### 3. Local Development (Vite + React + TypeScript)
+To build or develop using the TypeScript/React source files:
 
 ```bash
 npm install
 npm run dev
 ```
 
-Üretim derlemesi için:
+For a production Vite build:
 
 ```bash
 npm run build
@@ -65,39 +65,39 @@ npm run build
 
 ---
 
-## Proje Dosya Yapısı (Düz / Klasörsüz)
+## Project Structure (Flat / Folder-Free)
 
-Tüm dosyalar kolay paylaşım ve yükleme için kök dizinde yer alır:
+All files live directly in the repository root for effortless uploading and static deployment:
 
-| Dosya | Açıklama |
+| File | Purpose |
 | :--- | :--- |
-| `index.html` | Uygulama giriş noktası, SEO meta etiketleri, SVG favicon ve CSP başlıkları |
-| `app.bundle.js` | Sıfır bağımlılıklı, doğrudan tarayıcıda çalışan tam üretim paketi |
-| `styles.css` | Derlenmiş karanlık/aydınlık tema stilleri |
-| `site.ts` | Marka adı, STUN/WSS broker listesi ve güvenlik sınır sabitleri |
-| `translations.ts` | Sıfır çerezli Türkçe / İngilizce (`TR` / `EN`) dil sözlüğü ve React Context |
-| `seedCrypto.ts` | CSPRNG Seed üretici, SHA-256 + PBKDF2 + HKDF anahtar türetme ve AES-GCM-256 paketleme |
-| `signaling.ts` | Saf WebSocket MQTT v3.1.1 istemcisi, 3 broker failover, replay koruması ve oda kilitleme |
-| `fileWriter.ts` | File System Access API doğrudan disk yazıcı, RAM Blob yedeği ve dosya adı temizleyici |
-| `folderStream.ts` | Özyinelemeli klasör tarayıcı, Zip Slip koruması ve anlık ZIP akışı |
-| `usePeerTransfer.ts` | WebRTC yaşam döngüsü, ACK/Resume, backpressure ve şifreli pano yönetimi |
-| `App.tsx`, `Navbar.tsx`, `TransferWorkspace.tsx`, `HowItWorksModal.tsx`, `SecurityModal.tsx`, `Footer.tsx` | React + Tailwind CSS arayüz bileşenleri |
+| `index.html` | Entry document, SEO metadata, inline SVG favicon, CSP & `no-referrer` headers |
+| `app.bundle.js` | Zero-dependency, self-contained production browser bundle |
+| `styles.css` | Precompiled dark/light theme stylesheet |
+| `site.ts` | Branding config, STUN/WSS broker list, and security limit constants |
+| `translations.ts` | Zero-cookie English / Turkish (`EN` / `TR`) dictionary and React Context |
+| `seedCrypto.ts` | CSPRNG seed generator, SHA-256 + PBKDF2 + HKDF derivation, and AES-GCM-256 framing |
+| `signaling.ts` | Native browser WebSocket MQTT v3.1.1 client, 3-broker failover, replay protection, and room lock |
+| `fileWriter.ts` | Direct-to-disk File System Access API writer, capped RAM Blob fallback, and filename sanitizer |
+| `folderStream.ts` | Recursive folder scanner, Zip Slip sanitizer, and streaming ZIP generator |
+| `usePeerTransfer.ts` | WebRTC lifecycle, chunk ACK/Resume, backpressure flow control, and encrypted clipboard |
+| `App.tsx`, `Navbar.tsx`, `TransferWorkspace.tsx`, `HowItWorksModal.tsx`, `SecurityModal.tsx`, `Footer.tsx` | React + Tailwind CSS UI components |
 
 ---
 
-## Nasıl Kullanılır?
+## How to Use
 
-1. **Gönderici:** Sayfayı açın (**Dosya Gönder** sekmesi hazırdır). Ekranda oluşan tek kullanımlık bağlantı kodunu kopyalayın veya QR kodu alıcıya gösterin.
-2. **Alıcı:** Diğer cihazda **Dosya Al** sekmesine geçin, bağlantı kodunu girin ve **Bağlan** butonuna tıklayın.
-3. **Aktarım:** Cihazlar eşleşip oda kilitlendikten sonra gönderici dosya veya klasör seçerek aktarımı başlatır; alıcı kayıt konumunu seçerek indirmeyi başlatır.
+1. **Sender:** Open the page (**Send Files** tab is active by default). Copy the generated one-time connection code or display its QR code.
+2. **Receiver:** Switch to the **Receive Files** tab on the other device, enter the connection code, and click **Connect**.
+3. **Transfer:** Once paired and locked, select or drag-and-drop files/folders on the sender side and start the transfer; the receiver chooses a save location to stream directly to disk.
 
-> **Not:** Dosyalar bulut sunucusu olmadan doğrudan cihazlar arasında aktarıldığı için transfer tamamlanana kadar her iki cihazda da tarayıcı sekmesinin açık kalması gerekir.
+> **Note:** Because transfers flow directly between devices without a cloud server, both tabs must stay open until the transfer completes.
 
 ---
 
-## Teknoloji Yığını
+## Tech Stack
 
-- **Arayüz:** React 18, TypeScript, Tailwind CSS, Vite
-- **Kriptografi:** Yerleşik Web Crypto API (`SHA-256`, `PBKDF2`, `HKDF`, `AES-GCM-256`, `CSPRNG`)
-- **P2P & Ağ:** WebRTC (`RTCPeerConnection`, `RTCDataChannel`), Native WebSocket MQTT v3.1.1 (`wss://`)
-- **Dosya & Sıkıştırma:** File System Access API, `fflate` / akış tabanlı PKZIP
+- **Frontend:** React 18, TypeScript, Tailwind CSS, Vite
+- **Cryptography:** Native Web Crypto API (`SHA-256`, `PBKDF2`, `HKDF`, `AES-GCM-256`, `CSPRNG`)
+- **P2P & Signaling:** WebRTC (`RTCPeerConnection`, `RTCDataChannel`), Native WebSocket MQTT v3.1.1 (`wss://`)
+- **Streaming & Archiving:** File System Access API, `fflate` / streaming PKZIP
