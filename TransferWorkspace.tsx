@@ -655,12 +655,12 @@ export const TransferWorkspace: React.FC<TransferWorkspaceProps> = ({
                 </span>
               </div>
 
-              <div className="w-full h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-emerald-500 to-sky-500 transition-all duration-150"
-                  style={{ width: `${Math.min(100, telemetry.progressPercent)}%` }}
-                />
-              </div>
+              <progress
+                className="zs-progress"
+                value={Math.min(100, telemetry.progressPercent)}
+                max={100}
+                aria-label={telemetry.activeFileName || t.telemetry.progressLabel}
+              />
 
               <div className="flex items-center justify-between gap-2 text-[11px] text-slate-500 dark:text-slate-400 font-mono">
                 <span>

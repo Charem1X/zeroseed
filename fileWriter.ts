@@ -200,7 +200,7 @@ export class StreamFileWriter {
     a.href = url;
     a.download = sanitizeFileName(fileName);
     a.rel = 'noopener noreferrer';
-    a.style.display = 'none';
+    a.hidden = true;
     document.body.appendChild(a);
     a.click();
     setTimeout(() => {

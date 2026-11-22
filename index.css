@@ -31,3 +31,33 @@
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(16, 185, 129, 0.55);
 }
+
+.zs-progress {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 0.5rem;
+  border: 0;
+  border-radius: 9999px;
+  background-color: #e2e8f0;
+  overflow: hidden;
+  display: block;
+}
+.zs-progress::-webkit-progress-bar {
+  background-color: #e2e8f0;
+  border-radius: 9999px;
+}
+.zs-progress::-webkit-progress-value {
+  background: linear-gradient(90deg, #10b981 0%, #0ea5e9 100%);
+  border-radius: 9999px;
+  transition: width 0.15s ease;
+}
+.zs-progress::-moz-progress-bar {
+  background: linear-gradient(90deg, #10b981 0%, #0ea5e9 100%);
+  border-radius: 9999px;
+}
+html.dark .zs-progress,
+html.dark .zs-progress::-webkit-progress-bar {
+  background-color: #1e293b;
+}

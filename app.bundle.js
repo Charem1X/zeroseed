@@ -1190,7 +1190,7 @@
         a.href = url;
         a.download = this.fileName;
         a.rel = 'noopener noreferrer';
-        a.style.display = 'none';
+        a.hidden = true;
         document.body.appendChild(a);
         a.click();
         setTimeout(() => document.body.removeChild(a), 250);
@@ -2637,7 +2637,7 @@
   function svgIcon(inner, size, color) {
     const s = size || 16;
     const c = color || 'currentColor';
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;display:inline-block;vertical-align:middle;" aria-hidden="true">${inner}</svg>`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="zs-icon" aria-hidden="true">${inner}</svg>`;
   }
 
   const UI_ICONS = {
@@ -2674,7 +2674,7 @@
         tm.phase === 'transferring' ||
         tm.phase === 'paused_backpressure' ||
         tm.phase === 'completed';
-      panel.style.display = show ? 'block' : 'none';
+      panel.classList.toggle('zs-hidden', !show);
       panel.innerHTML = buildTelemetryCardInnerHtml();
       bindTelemetryEvents();
     }
@@ -2687,28 +2687,24 @@
     const showProgressStrip = isStreaming || tm.phase === 'completed';
     if (!showProgressStrip) return '';
 
-    const muted = state.darkMode ? '#94a3b8' : '#64748b';
-
     return `
-      <div style="display:flex;flex-direction:column;gap:0.6rem;">
+      <div class="zs-col">
         ${
           tm.resumedFromChunk !== null
-            ? `<div class="font-mono" style="padding:0.45rem 0.75rem;border-radius:0.55rem;background:rgba(14,165,233,0.1);border:1px solid rgba(14,165,233,0.28);font-size:0.72rem;color:#38bdf8;">
+            ? `<div class="font-mono zs-resume-banner">
                 ${escapeHtml(t.telemetry.resumedFromChunk)}${tm.resumedFromChunk})
               </div>`
             : ''
         }
 
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;font-size:0.78rem;">
-          <span style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(tm.activeFileName || t.telemetry.progressLabel)}</span>
-          <span class="font-mono" style="font-weight:700;color:#10b981;flex-shrink:0;">${tm.progressPercent.toFixed(1)}%</span>
+        <div class="zs-row-between zs-text-xs">
+          <span class="zs-font-semibold zs-truncate">${escapeHtml(tm.activeFileName || t.telemetry.progressLabel)}</span>
+          <span class="font-mono zs-font-bold zs-text-emerald">${tm.progressPercent.toFixed(1)}%</span>
         </div>
 
-        <div class="zs-progress-track">
-          <div class="zs-progress-bar" style="width:${Math.min(100, tm.progressPercent)}%;"></div>
-        </div>
+        <progress class="zs-progress" value="${Math.min(100, tm.progressPercent)}" max="100" aria-label="${escapeHtml(tm.activeFileName || t.telemetry.progressLabel)}"></progress>
 
-        <div class="font-mono" style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;font-size:0.7rem;color:${muted};flex-wrap:wrap;">
+        <div class="font-mono zs-telemetry-meta">
           <span>
             ${formatBytes(tm.bytesTransferred)} / ${formatBytes(tm.totalBytes)}${
       isStreaming
@@ -2721,7 +2717,7 @@
 
         ${
           isStreaming
-            ? `<button type="button" id="zs-btn-abort-transfer" style="margin-top:0.25rem;width:100%;padding:0.55rem 0.75rem;border-radius:0.75rem;background:rgba(244,63,94,0.1);border:1px solid rgba(244,63,94,0.28);color:#f43f5e;font-size:0.78rem;font-weight:600;display:flex;align-items:center;justify-content:center;gap:0.4rem;">
+            ? `<button type="button" id="zs-btn-abort-transfer" class="zs-btn-abort">
                 ${svgIcon(UI_ICONS.xCircle, 14, '#f43f5e')}
                 <span>${escapeHtml(t.telemetry.cancelTransfer)}</span>
               </button>`
@@ -2730,13 +2726,13 @@
 
         ${
           tm.phase === 'completed'
-            ? `<div style="padding:0.65rem 0.8rem;border-radius:0.75rem;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.28);display:flex;align-items:center;justify-content:space-between;gap:0.5rem;font-size:0.78rem;color:#10b981;font-weight:600;">
+            ? `<div class="zs-complete-banner">
                 <span>${escapeHtml(t.telemetry.transferComplete)}</span>
                 ${
                   tm.completedDownloadUrl &&
                   String(tm.completedDownloadUrl).startsWith('blob:') &&
                   tm.activeFileName
-                    ? `<a href="${escapeHtml(tm.completedDownloadUrl)}" download="${escapeHtml(sanitizeFileName(tm.activeFileName))}" rel="noopener noreferrer" class="zs-btn-primary" style="padding:0.35rem 0.75rem;font-size:0.72rem;text-decoration:none;">${escapeHtml(t.telemetry.downloadAgain)}</a>`
+                    ? `<a href="${escapeHtml(tm.completedDownloadUrl)}" download="${escapeHtml(sanitizeFileName(tm.activeFileName))}" rel="noopener noreferrer" class="zs-btn-primary zs-btn-download-again">${escapeHtml(t.telemetry.downloadAgain)}</a>`
                     : ''
                 }
               </div>`
@@ -2791,18 +2787,17 @@
     const showProgressStrip = isStreaming || tm.phase === 'completed';
     const totalQueueBytes = state.queuedEntries.reduce((acc, it) => acc + it.file.size, 0);
     const diskSupported = isFileSystemAccessSupported();
-    const muted = state.darkMode ? '#94a3b8' : '#64748b';
     const canRetryConnection =
       state.errorCode === 'receiverDisconnected' ||
       state.errorCode === 'senderDisconnected' ||
       state.errorCode === 'peerDisconnected';
-    const statusDotColor = isTunnelOpen
-      ? '#10b981'
+    const statusDotColorCls = isTunnelOpen
+      ? 'zs-dot-emerald'
       : tm.phase === 'error'
-      ? '#f43f5e'
+      ? 'zs-dot-rose'
       : tm.phase === 'idle'
-      ? '#94a3b8'
-      : '#f59e0b';
+      ? 'zs-dot-slate'
+      : 'zs-dot-amber';
     const statusDotCls =
       !isTunnelOpen && tm.phase !== 'error' && tm.phase !== 'idle' ? 'zs-pulse' : '';
 
@@ -2812,35 +2807,35 @@
           <!-- Simplified Navbar -->
           <header class="zs-navbar">
             <div class="zs-container zs-navbar-inner">
-              <div style="display:flex;align-items:center;gap:0.6rem;">
-                <div style="width:2.25rem;height:2.25rem;border-radius:0.65rem;background:#0f172a;border:1px solid rgba(16,185,129,0.35);display:flex;align-items:center;justify-content:center;">
-                  <svg viewBox="0 0 64 64" fill="none" style="width:1.25rem;height:1.25rem;" aria-hidden="true">
+              <div class="zs-brand">
+                <div class="zs-brand-logo">
+                  <svg viewBox="0 0 64 64" fill="none" class="zs-brand-svg" aria-hidden="true">
                     <path d="M32 8L52 19.5V44.5L32 56L12 44.5V19.5L32 8Z" stroke="#10B981" stroke-width="4.5" stroke-linejoin="round"/>
                     <path d="M22 26L42 38M42 26L22 38" stroke="#38BDF8" stroke-width="3.5" stroke-linecap="round"/>
                     <circle cx="32" cy="32" r="5.5" fill="#10B981"/>
                   </svg>
                 </div>
-                <span style="font-weight:700;font-size:1.05rem;letter-spacing:-0.02em;">
-                  ${SITE_CONFIG.name}<span style="color:#10b981;">${SITE_CONFIG.domain}</span>
+                <span class="zs-brand-title">
+                  ${SITE_CONFIG.name}<span class="zs-text-emerald">${SITE_CONFIG.domain}</span>
                 </span>
               </div>
 
-              <div style="display:flex;align-items:center;gap:0.4rem;">
-                <button type="button" id="zs-btn-how" class="zs-btn-ghost" style="padding:0.4rem 0.65rem;font-size:0.78rem;font-weight:500;">
+              <div class="zs-nav-actions">
+                <button type="button" id="zs-btn-how" class="zs-btn-ghost zs-nav-btn">
                   ${svgIcon(UI_ICONS.help, 15, '#0ea5e9')}
                   <span>${escapeHtml(t.nav.howItWorks)}</span>
                 </button>
-                <button type="button" id="zs-btn-sec" class="zs-btn-ghost" style="padding:0.4rem 0.65rem;font-size:0.78rem;font-weight:500;">
+                <button type="button" id="zs-btn-sec" class="zs-btn-ghost zs-nav-btn">
                   ${svgIcon(UI_ICONS.shield, 15, '#10b981')}
                   <span>${escapeHtml(t.nav.security)}</span>
                 </button>
 
-                <div role="group" aria-label="${escapeHtml(t.nav.langSwitchLabel)}" class="zs-tabs" style="padding:0.15rem;border-radius:0.55rem;">
-                  <button type="button" id="zs-lang-tr" class="font-mono ${state.lang === 'tr' ? 'zs-tab-active' : ''}" style="padding:0.25rem 0.5rem;border-radius:0.4rem;font-size:0.7rem;font-weight:700;background:${state.lang === 'tr' ? (state.darkMode ? '#0f172a' : '#ffffff') : 'transparent'};color:${state.lang === 'tr' ? '#10b981' : muted};">TR</button>
-                  <button type="button" id="zs-lang-en" class="font-mono ${state.lang === 'en' ? 'zs-tab-active' : ''}" style="padding:0.25rem 0.5rem;border-radius:0.4rem;font-size:0.7rem;font-weight:700;background:${state.lang === 'en' ? (state.darkMode ? '#0f172a' : '#ffffff') : 'transparent'};color:${state.lang === 'en' ? '#10b981' : muted};">EN</button>
+                <div role="group" aria-label="${escapeHtml(t.nav.langSwitchLabel)}" class="zs-lang-switch">
+                  <button type="button" id="zs-lang-tr" class="font-mono zs-lang-btn ${state.lang === 'tr' ? 'zs-tab-active' : ''}">TR</button>
+                  <button type="button" id="zs-lang-en" class="font-mono zs-lang-btn ${state.lang === 'en' ? 'zs-tab-active' : ''}">EN</button>
                 </div>
 
-                <button type="button" id="zs-btn-theme" class="zs-btn-tonal" style="padding:0.45rem;border-radius:0.55rem;" title="${escapeHtml(state.darkMode ? t.nav.themeToggleLight : t.nav.themeToggleDark)}" aria-label="${escapeHtml(state.darkMode ? t.nav.themeToggleLight : t.nav.themeToggleDark)}">
+                <button type="button" id="zs-btn-theme" class="zs-btn-tonal zs-theme-btn" title="${escapeHtml(state.darkMode ? t.nav.themeToggleLight : t.nav.themeToggleDark)}" aria-label="${escapeHtml(state.darkMode ? t.nav.themeToggleLight : t.nav.themeToggleDark)}">
                   ${state.darkMode ? svgIcon(UI_ICONS.sun, 16, '#fbbf24') : svgIcon(UI_ICONS.moon, 16, '#334155')}
                 </button>
               </div>
@@ -2848,27 +2843,27 @@
           </header>
 
           <!-- Main Focused Single-Column Workspace -->
-          <main class="zs-container" style="padding-top:2rem;padding-bottom:1rem;">
+          <main class="zs-container zs-main">
             ${
               state.isDraggingWindow
                 ? `<div class="zs-modal-overlay">
-                    <div class="zs-card" style="padding:2.25rem;text-align:center;max-width:26rem;border:2px dashed #10b981;">
-                      <div style="width:3.25rem;height:3.25rem;margin:0 auto 0.75rem auto;border-radius:1rem;background:rgba(16,185,129,0.12);display:flex;align-items:center;justify-content:center;">
+                    <div class="zs-card zs-drop-overlay-card">
+                      <div class="zs-drop-overlay-icon">
                         ${svgIcon(UI_ICONS.upload, 26, '#10b981')}
                       </div>
-                      <h2 style="font-size:1.25rem;font-weight:700;margin:0 0 0.35rem 0;">${escapeHtml(t.hero.dropOverlayTitle)}</h2>
-                      <p style="font-size:0.8rem;color:${muted};margin:0;">${escapeHtml(t.hero.dropOverlaySubtitle)}</p>
+                      <h2 class="zs-drop-overlay-title">${escapeHtml(t.hero.dropOverlayTitle)}</h2>
+                      <p class="zs-drop-overlay-sub">${escapeHtml(t.hero.dropOverlaySubtitle)}</p>
                     </div>
                   </div>`
                 : ''
             }
 
-            <div class="zs-focus-wrap" style="text-align:center;margin-bottom:1.5rem;">
-              <h1 style="font-size:1.75rem;font-weight:800;letter-spacing:-0.025em;margin:0;">${escapeHtml(t.hero.title)}</h1>
-              <p style="font-size:0.875rem;color:${muted};margin:0.4rem 0 0 0;">${escapeHtml(t.hero.subtitle)}</p>
+            <div class="zs-focus-wrap zs-hero">
+              <h1 class="zs-hero-title">${escapeHtml(t.hero.title)}</h1>
+              <p class="zs-hero-subtitle">${escapeHtml(t.hero.subtitle)}</p>
             </div>
 
-            <section class="zs-focus-wrap zs-card" style="overflow:hidden;">
+            <section class="zs-focus-wrap zs-card zs-workspace-card">
               <!-- Segmented Tabs + Single Status Pill -->
               <div class="zs-card-header">
                 <div class="zs-tabs">
@@ -2883,29 +2878,29 @@
                 </div>
 
                 <span class="zs-pill">
-                  <span class="${statusDotCls}" style="width:0.5rem;height:0.5rem;border-radius:9999px;background:${statusDotColor};display:inline-block;"></span>
+                  <span class="zs-status-dot ${statusDotColorCls} ${statusDotCls}"></span>
                   <span>${escapeHtml(t.status[tm.phase] || tm.phase)}</span>
                 </span>
               </div>
 
-              <div style="padding:1.35rem;display:flex;flex-direction:column;gap:1.15rem;">
+              <div class="zs-card-body">
                 ${
                   state.errorCode
-                    ? `<div style="padding:0.85rem 1rem;border-radius:0.85rem;background:rgba(244,63,94,0.1);border:1px solid rgba(244,63,94,0.3);color:${state.darkMode ? '#fda4af' : '#be123c'};display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:0.65rem;font-size:0.8rem;">
-                        <div style="display:flex;align-items:center;gap:0.55rem;flex:1;min-width:12rem;">
+                    ? `<div class="zs-alert-error">
+                        <div class="zs-alert-msg">
                           ${svgIcon(UI_ICONS.alert, 16, '#f43f5e')}
                           <span>${escapeHtml(t.errors[state.errorCode] || state.errorCode)}</span>
                         </div>
-                        <div style="display:flex;align-items:center;gap:0.45rem;">
+                        <div class="zs-row-wrap">
                           ${
                             canRetryConnection
-                              ? `<button type="button" id="zs-btn-reconnect" style="display:inline-flex;align-items:center;gap:0.35rem;padding:0.4rem 0.75rem;border-radius:0.55rem;background:#e11d48;color:#ffffff;font-size:0.75rem;font-weight:600;">
+                              ? `<button type="button" id="zs-btn-reconnect" class="zs-btn-danger-solid">
                                   ${svgIcon(UI_ICONS.rotate, 13, '#ffffff')}
                                   <span>${escapeHtml(state.role === 'sender' ? t.sender.waitAgainBtn : t.receiver.reconnectBtn)}</span>
                                 </button>`
                               : ''
                           }
-                          <button type="button" id="zs-btn-dismiss-err" style="background:transparent;color:inherit;padding:0.3rem 0.5rem;font-size:0.75rem;opacity:0.8;">${escapeHtml(t.modals.close)}</button>
+                          <button type="button" id="zs-btn-dismiss-err" class="zs-btn-dismiss">${escapeHtml(t.modals.close)}</button>
                         </div>
                       </div>`
                     : ''
@@ -2915,40 +2910,40 @@
                   state.role === 'sender'
                     ? `
                       <!-- Compact Connection Code Box -->
-                      <div class="zs-subcard" style="padding:1rem;display:flex;flex-direction:column;gap:0.65rem;">
-                        <span style="font-size:0.75rem;font-weight:600;color:${muted};">${escapeHtml(t.sender.seedLabel)}</span>
+                      <div class="zs-subcard zs-box">
+                        <span class="zs-label">${escapeHtml(t.sender.seedLabel)}</span>
 
-                        <div style="display:flex;flex-wrap:wrap;gap:0.45rem;align-items:center;">
-                          <div aria-readonly="true" class="zs-input font-mono" style="flex:1;min-width:11rem;padding:0.6rem 0.85rem;color:#10b981;font-weight:700;user-select:all;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                        <div class="zs-row-wrap">
+                          <div aria-readonly="true" class="zs-input font-mono zs-seed-display">
                             ${escapeHtml(state.senderSeed)}
                           </div>
 
-                          <button type="button" id="zs-btn-copy-seed" class="zs-btn-primary" style="padding:0.65rem 0.9rem;font-size:0.78rem;">
+                          <button type="button" id="zs-btn-copy-seed" class="zs-btn-primary zs-btn-copy">
                             ${state.seedCopied ? svgIcon(UI_ICONS.check, 15, '#ffffff') : svgIcon(UI_ICONS.copy, 15, '#ffffff')}
                             <span>${escapeHtml(state.seedCopied ? t.sender.copiedSeed : t.sender.copySeed)}</span>
                           </button>
 
-                          <button type="button" id="zs-btn-regen-seed" ${isStreaming ? 'disabled' : ''} class="zs-btn-tonal" style="padding:0.65rem;" title="${escapeHtml(t.sender.regenerateSeed)}" aria-label="${escapeHtml(t.sender.regenerateSeed)}">
+                          <button type="button" id="zs-btn-regen-seed" ${isStreaming ? 'disabled' : ''} class="zs-btn-tonal zs-btn-icon" title="${escapeHtml(t.sender.regenerateSeed)}" aria-label="${escapeHtml(t.sender.regenerateSeed)}">
                             ${svgIcon(UI_ICONS.refresh, 16)}
                           </button>
 
-                          <button type="button" id="zs-btn-toggle-qr" class="zs-btn-tonal" style="padding:0.65rem;border:1px solid ${state.showQr ? 'rgba(16,185,129,0.45)' : 'transparent'};color:${state.showQr ? '#10b981' : 'inherit'};" title="${escapeHtml(state.showQr ? t.sender.hideQr : t.sender.showQr)}" aria-label="${escapeHtml(state.showQr ? t.sender.hideQr : t.sender.showQr)}">
+                          <button type="button" id="zs-btn-toggle-qr" class="zs-btn-tonal zs-btn-icon ${state.showQr ? 'zs-btn-icon-active' : ''}" title="${escapeHtml(state.showQr ? t.sender.hideQr : t.sender.showQr)}" aria-label="${escapeHtml(state.showQr ? t.sender.hideQr : t.sender.showQr)}">
                             ${svgIcon(UI_ICONS.qr, 16)}
                           </button>
                         </div>
 
-                        <p style="font-size:0.72rem;color:${muted};margin:0;">${escapeHtml(t.sender.seedHint)}</p>
+                        <p class="zs-hint">${escapeHtml(t.sender.seedHint)}</p>
 
                         ${
                           state.showQr
-                            ? `<div style="padding-top:0.75rem;border-top:1px solid rgba(148,163,184,0.18);display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
-                                <div style="padding:0.55rem;background:#ffffff;border-radius:0.75rem;border:1px solid #e2e8f0;display:inline-flex;">
+                            ? `<div class="zs-qr-panel">
+                                <div class="zs-qr-frame">
                                   ${renderSeedQrSvg(state.senderSeed, 104)}
                                 </div>
-                                <div style="flex:1;min-width:11rem;">
-                                  <div style="font-size:0.78rem;font-weight:700;">${escapeHtml(t.sender.qrModalTitle)}</div>
-                                  <p style="font-size:0.72rem;color:${muted};margin:0.2rem 0;">${escapeHtml(t.sender.qrModalHint)}</p>
-                                  <div class="font-mono" style="font-size:0.75rem;color:#10b981;font-weight:600;">${escapeHtml(state.senderSeed)}</div>
+                                <div class="zs-qr-meta">
+                                  <div class="zs-qr-title">${escapeHtml(t.sender.qrModalTitle)}</div>
+                                  <p class="zs-qr-hint">${escapeHtml(t.sender.qrModalHint)}</p>
+                                  <div class="font-mono zs-qr-code-text">${escapeHtml(state.senderSeed)}</div>
                                 </div>
                               </div>`
                             : ''
@@ -2957,21 +2952,21 @@
 
                       <!-- Clean Dropzone -->
                       <div class="zs-dropzone">
-                        <div style="width:2.5rem;height:2.5rem;margin:0 auto 0.65rem auto;border-radius:0.75rem;background:rgba(16,185,129,0.12);display:flex;align-items:center;justify-content:center;">
+                        <div class="zs-dropzone-icon">
                           ${svgIcon(UI_ICONS.upload, 20, '#10b981')}
                         </div>
-                        <div style="font-size:0.9rem;font-weight:700;">${escapeHtml(t.sender.selectFilesTitle)}</div>
-                        <div style="font-size:0.75rem;color:${muted};margin-top:0.2rem;">${escapeHtml(t.sender.selectFilesSubtitle)}</div>
+                        <div class="zs-dropzone-title">${escapeHtml(t.sender.selectFilesTitle)}</div>
+                        <div class="zs-dropzone-sub">${escapeHtml(t.sender.selectFilesSubtitle)}</div>
 
-                        <input type="file" id="zs-input-files" multiple style="display:none;" />
-                        <input type="file" id="zs-input-folder" webkitdirectory directory multiple style="display:none;" />
+                        <input type="file" id="zs-input-files" multiple class="zs-hidden" />
+                        <input type="file" id="zs-input-folder" webkitdirectory directory multiple class="zs-hidden" />
 
-                        <div style="display:flex;justify-content:center;gap:0.5rem;margin-top:0.85rem;flex-wrap:wrap;">
-                          <button type="button" id="zs-btn-browse-files" ${isStreaming ? 'disabled' : ''} style="display:inline-flex;align-items:center;gap:0.4rem;padding:0.55rem 1rem;border-radius:0.75rem;font-size:0.78rem;font-weight:600;background:${state.darkMode ? '#1e293b' : '#0f172a'};color:#ffffff;">
+                        <div class="zs-dropzone-actions">
+                          <button type="button" id="zs-btn-browse-files" ${isStreaming ? 'disabled' : ''} class="zs-btn-dark">
                             ${svgIcon(UI_ICONS.file, 14, '#34d399')}
                             <span>${escapeHtml(t.sender.browseFilesBtn)}</span>
                           </button>
-                          <button type="button" id="zs-btn-browse-folder" ${isStreaming ? 'disabled' : ''} class="zs-btn-tonal" style="padding:0.55rem 1rem;font-size:0.78rem;">
+                          <button type="button" id="zs-btn-browse-folder" ${isStreaming ? 'disabled' : ''} class="zs-btn-tonal zs-btn-folder">
                             ${svgIcon(UI_ICONS.folder, 14, '#0ea5e9')}
                             <span>${escapeHtml(t.sender.browseFolderBtn)}</span>
                           </button>
@@ -2981,15 +2976,15 @@
                       <!-- Progressive Queue Section (Only rendered when items exist) -->
                       ${
                         state.queuedEntries.length > 0
-                          ? `<div style="display:flex;flex-direction:column;gap:0.65rem;">
-                              <div style="display:flex;align-items:center;justify-content:space-between;font-size:0.78rem;">
-                                <span style="font-weight:600;">
+                          ? `<div class="zs-col">
+                              <div class="zs-row-between zs-text-xs">
+                                <span class="zs-font-semibold">
                                   ${escapeHtml(t.sender.queueTitle)} ·
-                                  <span class="font-mono" style="color:#10b981;">${state.queuedEntries.length} ${escapeHtml(t.sender.filesSelected)} (${formatBytes(totalQueueBytes)})</span>
+                                  <span class="font-mono zs-text-emerald">${state.queuedEntries.length} ${escapeHtml(t.sender.filesSelected)} (${formatBytes(totalQueueBytes)})</span>
                                 </span>
                                 ${
                                   !isStreaming
-                                    ? `<button type="button" id="zs-btn-clear-queue" style="background:transparent;color:#f43f5e;font-size:0.75rem;font-weight:600;display:inline-flex;align-items:center;gap:0.25rem;">
+                                    ? `<button type="button" id="zs-btn-clear-queue" class="zs-btn-clear">
                                         ${svgIcon(UI_ICONS.trash, 13, '#f43f5e')}
                                         <span>${escapeHtml(t.sender.clearQueue)}</span>
                                       </button>`
@@ -2999,35 +2994,35 @@
 
                               ${
                                 state.hasDirectoryInQueue || state.queuedEntries.length > 1
-                                  ? `<div style="padding:0.5rem 0.75rem;border-radius:0.75rem;background:rgba(14,165,233,0.1);border:1px solid rgba(14,165,233,0.22);font-size:0.75rem;color:${state.darkMode ? '#7dd3fc' : '#0369a1'};display:flex;align-items:center;justify-content:space-between;gap:0.5rem;">
-                                      <span style="display:inline-flex;align-items:center;gap:0.4rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                                  ? `<div class="zs-zip-banner">
+                                      <span class="zs-row zs-truncate">
                                         ${svgIcon(UI_ICONS.archive, 15, '#0ea5e9')}
-                                        <span>${escapeHtml(t.sender.zipStreamReady)}: <strong class="font-mono">${escapeHtml(state.rootFolderName ? state.rootFolderName + '.zip' : 'ZeroSeed-Archive.zip')}</strong></span>
+                                        <span class="zs-truncate">${escapeHtml(t.sender.zipStreamReady)}: <strong class="font-mono">${escapeHtml(state.rootFolderName ? state.rootFolderName + '.zip' : 'ZeroSeed-Archive.zip')}</strong></span>
                                       </span>
-                                      <span class="font-mono" style="font-size:0.65rem;padding:0.1rem 0.4rem;border-radius:0.35rem;background:rgba(14,165,233,0.18);flex-shrink:0;">ZIP</span>
+                                      <span class="font-mono zs-zip-pill">ZIP</span>
                                     </div>`
                                   : ''
                               }
 
-                              <div style="max-height:8rem;overflow-y:auto;display:flex;flex-direction:column;gap:0.3rem;">
+                              <div class="zs-queue-list">
                                 ${state.queuedEntries
                                   .slice(0, 20)
                                   .map(
                                     (it) => `
-                                  <div class="zs-subcard font-mono" style="padding:0.4rem 0.75rem;font-size:0.75rem;display:flex;justify-content:space-between;gap:0.5rem;border-radius:0.55rem;">
-                                    <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(it.relativePath)}</span>
-                                    <span style="color:${muted};font-size:0.7rem;flex-shrink:0;">${formatBytes(it.file.size)}</span>
+                                  <div class="zs-subcard font-mono zs-queue-item">
+                                    <span class="zs-truncate">${escapeHtml(it.relativePath)}</span>
+                                    <span class="zs-queue-size">${formatBytes(it.file.size)}</span>
                                   </div>`
                                   )
                                   .join('')}
                                 ${
                                   state.queuedEntries.length > 20
-                                    ? `<div class="font-mono" style="text-align:center;font-size:0.7rem;color:${muted};padding:0.2rem;">+ ${state.queuedEntries.length - 20} more</div>`
+                                    ? `<div class="font-mono zs-queue-more">+ ${state.queuedEntries.length - 20} more</div>`
                                     : ''
                                 }
                               </div>
 
-                              <button type="button" id="zs-btn-start-send" ${!isTunnelOpen || isStreaming ? 'disabled' : ''} class="zs-btn-primary" style="width:100%;padding:0.78rem 1rem;font-size:0.88rem;">
+                              <button type="button" id="zs-btn-start-send" ${!isTunnelOpen || isStreaming ? 'disabled' : ''} class="zs-btn-primary zs-btn-start">
                                 ${svgIcon(UI_ICONS.play, 15, '#ffffff')}
                                 <span>${escapeHtml(t.sender.startTransferBtn)}</span>
                               </button>
@@ -3037,17 +3032,17 @@
                     `
                     : `
                       <!-- Receiver Seed Input Box -->
-                      <div class="zs-subcard" style="padding:1rem;display:flex;flex-direction:column;gap:0.65rem;">
-                        <label for="zs-receiver-seed" style="display:block;font-size:0.75rem;font-weight:600;color:${muted};">${escapeHtml(t.receiver.seedInputLabel)}</label>
-                        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
-                          <input id="zs-receiver-seed" type="text" value="${escapeHtml(state.receiverSeedInput)}" placeholder="${escapeHtml(t.receiver.seedInputPlaceholder)}" ${isStreaming || isTunnelOpen ? 'disabled' : ''} maxlength="64" class="zs-input font-mono" style="flex:1;min-width:12rem;" autocomplete="off" spellcheck="false" />
+                      <div class="zs-subcard zs-box">
+                        <label for="zs-receiver-seed" class="zs-label">${escapeHtml(t.receiver.seedInputLabel)}</label>
+                        <div class="zs-row-wrap">
+                          <input id="zs-receiver-seed" type="text" value="${escapeHtml(state.receiverSeedInput)}" placeholder="${escapeHtml(t.receiver.seedInputPlaceholder)}" ${isStreaming || isTunnelOpen ? 'disabled' : ''} maxlength="64" class="zs-input font-mono zs-rx-input" autocomplete="off" spellcheck="false" />
                           ${
                             !isTunnelOpen
-                              ? `<button type="button" id="zs-btn-connect-rx" class="zs-btn-sky" style="padding:0.7rem 1.2rem;font-size:0.85rem;">${escapeHtml(t.receiver.connectBtn)}</button>`
-                              : `<button type="button" id="zs-btn-disconnect-rx" style="padding:0.7rem 1rem;border-radius:0.75rem;background:rgba(244,63,94,0.12);color:#f43f5e;border:1px solid rgba(244,63,94,0.28);font-size:0.78rem;font-weight:600;">${escapeHtml(t.receiver.disconnectBtn)}</button>`
+                              ? `<button type="button" id="zs-btn-connect-rx" class="zs-btn-sky zs-btn-connect">${escapeHtml(t.receiver.connectBtn)}</button>`
+                              : `<button type="button" id="zs-btn-disconnect-rx" class="zs-btn-danger-soft">${escapeHtml(t.receiver.disconnectBtn)}</button>`
                           }
                         </div>
-                        <p style="font-size:0.72rem;color:${muted};margin:0;">
+                        <p class="zs-hint">
                           ${escapeHtml(
                             tm.phase === 'connecting_broker'
                               ? t.receiver.connectingBroker
@@ -3062,26 +3057,26 @@
 
                       ${
                         state.incomingOffer
-                          ? `<div style="padding:1rem;border-radius:0.9rem;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.35);display:flex;flex-direction:column;gap:0.75rem;">
-                              <div style="display:flex;align-items:center;gap:0.75rem;">
-                                <div style="padding:0.6rem;border-radius:0.75rem;background:rgba(16,185,129,0.18);display:flex;align-items:center;justify-content:center;">
+                          ? `<div class="zs-offer-card">
+                              <div class="zs-row">
+                                <div class="zs-offer-icon">
                                   ${svgIcon(state.incomingOffer.isFolderArchive ? UI_ICONS.archive : UI_ICONS.file, 20, '#10b981')}
                                 </div>
-                                <div style="min-width:0;flex:1;">
-                                  <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;color:#10b981;">${escapeHtml(t.receiver.incomingOfferTitle)}</div>
-                                  <div class="font-mono" style="font-size:0.9rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(state.incomingOffer.fileName)}</div>
-                                  <div class="font-mono" style="font-size:0.75rem;color:${muted};">${formatBytes(state.incomingOffer.fileSize)}</div>
+                                <div class="zs-flex-1">
+                                  <div class="zs-offer-kicker">${escapeHtml(t.receiver.incomingOfferTitle)}</div>
+                                  <div class="font-mono zs-offer-name">${escapeHtml(state.incomingOffer.fileName)}</div>
+                                  <div class="font-mono zs-offer-size">${formatBytes(state.incomingOffer.fileSize)}</div>
                                 </div>
                               </div>
-                              <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+                              <div class="zs-row-wrap">
                                 ${
                                   diskSupported
-                                    ? `<button type="button" id="zs-btn-accept-disk" class="zs-btn-primary" style="flex:1;padding:0.7rem 1rem;font-size:0.8rem;">
+                                    ? `<button type="button" id="zs-btn-accept-disk" class="zs-btn-primary zs-btn-accept-disk">
                                         ${svgIcon(UI_ICONS.hardDrive, 15, '#ffffff')}
                                         <span>${escapeHtml(t.receiver.acceptSaveDiskBtn)}</span>
                                       </button>
-                                      <button type="button" id="zs-btn-accept-ram" class="zs-btn-tonal" style="padding:0.7rem 0.9rem;font-size:0.78rem;">${escapeHtml(t.receiver.acceptRamFallbackBtn)}</button>`
-                                    : `<button type="button" id="zs-btn-accept-ram" class="zs-btn-primary" style="width:100%;padding:0.7rem 1rem;font-size:0.82rem;">
+                                      <button type="button" id="zs-btn-accept-ram" class="zs-btn-tonal zs-btn-accept-ram">${escapeHtml(t.receiver.acceptRamFallbackBtn)}</button>`
+                                    : `<button type="button" id="zs-btn-accept-ram" class="zs-btn-primary zs-btn-accept-ram-full">
                                         ${svgIcon(UI_ICONS.download, 15, '#ffffff')}
                                         <span>${escapeHtml(t.receiver.acceptRamFallbackBtn)}</span>
                                       </button>`
@@ -3094,54 +3089,54 @@
                 }
 
                 <!-- Progressive Inline Progress Strip -->
-                <div id="zs-telemetry-panel" style="display:${showProgressStrip ? 'block' : 'none'};padding-top:1rem;border-top:1px solid rgba(148,163,184,0.16);">
+                <div id="zs-telemetry-panel" class="zs-section-sep ${showProgressStrip ? '' : 'zs-hidden'}">
                   ${buildTelemetryCardInnerHtml()}
                 </div>
 
                 <!-- Progressive Collapsible Encrypted Note Drawer (Only when connected) -->
                 ${
                   isTunnelOpen
-                    ? `<div style="padding-top:0.85rem;border-top:1px solid rgba(148,163,184,0.16);">
-                        <button type="button" id="zs-btn-toggle-notes" class="zs-btn-ghost" style="width:100%;justify-content:space-between;padding:0.3rem 0.25rem;font-size:0.78rem;font-weight:600;color:${state.darkMode ? '#cbd5e1' : '#475569'};">
-                          <span style="display:inline-flex;align-items:center;gap:0.45rem;">
+                    ? `<div class="zs-notes-section">
+                        <button type="button" id="zs-btn-toggle-notes" class="zs-btn-ghost zs-notes-toggle">
+                          <span class="zs-row">
                             ${svgIcon(UI_ICONS.message, 15, '#0ea5e9')}
                             <span>${escapeHtml(t.clipboard.toggleLabel)}</span>
                             ${
                               state.clipboardItems.length > 0
-                                ? `<span class="font-mono" style="padding:0.1rem 0.45rem;border-radius:9999px;font-size:0.65rem;background:rgba(14,165,233,0.15);color:#0ea5e9;">${state.clipboardItems.length}</span>`
+                                ? `<span class="font-mono zs-notes-badge">${state.clipboardItems.length}</span>`
                                 : ''
                             }
                           </span>
-                          ${state.notesOpen ? svgIcon(UI_ICONS.chevronUp, 15, muted) : svgIcon(UI_ICONS.chevronDown, 15, muted)}
+                          ${state.notesOpen ? svgIcon(UI_ICONS.chevronUp, 15) : svgIcon(UI_ICONS.chevronDown, 15)}
                         </button>
 
                         ${
                           state.notesOpen
-                            ? `<div style="margin-top:0.75rem;display:flex;flex-direction:column;gap:0.6rem;">
-                                <textarea id="zs-clipboard-input" rows="2" placeholder="${escapeHtml(t.clipboard.placeholder)}" maxlength="${SITE_CONFIG.maxClipboardChars}" class="zs-input font-mono" style="font-size:0.78rem;resize:none;padding:0.6rem 0.75rem;">${escapeHtml(state.clipboardDraft)}</textarea>
-                                <div style="display:flex;justify-content:flex-end;gap:0.45rem;">
+                            ? `<div class="zs-notes-body">
+                                <textarea id="zs-clipboard-input" rows="2" placeholder="${escapeHtml(t.clipboard.placeholder)}" maxlength="${SITE_CONFIG.maxClipboardChars}" class="zs-input font-mono zs-notes-textarea">${escapeHtml(state.clipboardDraft)}</textarea>
+                                <div class="zs-row-end">
                                   ${
                                     state.clipboardItems.length > 0
-                                      ? `<button type="button" id="zs-btn-clear-clip" class="zs-btn-ghost" style="padding:0.35rem 0.65rem;font-size:0.75rem;color:#f43f5e;">${escapeHtml(t.clipboard.clearBtn)}</button>`
+                                      ? `<button type="button" id="zs-btn-clear-clip" class="zs-btn-ghost zs-btn-clear-clip">${escapeHtml(t.clipboard.clearBtn)}</button>`
                                       : ''
                                   }
-                                  <button type="button" id="zs-btn-send-clip" ${!state.clipboardDraft.trim() ? 'disabled' : ''} class="zs-btn-sky" style="padding:0.4rem 0.85rem;font-size:0.78rem;">${escapeHtml(t.clipboard.sendBtn)}</button>
+                                  <button type="button" id="zs-btn-send-clip" ${!state.clipboardDraft.trim() ? 'disabled' : ''} class="zs-btn-sky zs-btn-send-clip">${escapeHtml(t.clipboard.sendBtn)}</button>
                                 </div>
                                 ${
                                   state.clipboardItems.length > 0
-                                    ? `<div style="max-height:9rem;overflow-y:auto;display:flex;flex-direction:column;gap:0.4rem;">
+                                    ? `<div class="zs-notes-list">
                                         ${state.clipboardItems
                                           .map(
                                             (item) => `
-                                          <div class="zs-subcard" style="padding:0.55rem 0.75rem;font-size:0.75rem;">
-                                            <div class="font-mono" style="display:flex;justify-content:space-between;font-size:0.65rem;margin-bottom:0.2rem;">
-                                              <span style="font-weight:700;color:${item.direction === 'sent' ? '#10b981' : '#0ea5e9'};">${escapeHtml(item.direction === 'sent' ? t.clipboard.sentTag : t.clipboard.receivedTag)}</span>
-                                              <button type="button" data-copy-clip="${escapeHtml(item.id)}" style="background:transparent;color:${muted};font-size:0.65rem;display:inline-flex;align-items:center;gap:0.25rem;">
+                                          <div class="zs-subcard zs-note-item">
+                                            <div class="font-mono zs-note-item-head">
+                                              <span class="zs-font-bold ${item.direction === 'sent' ? 'zs-text-emerald' : 'zs-text-sky'}">${escapeHtml(item.direction === 'sent' ? t.clipboard.sentTag : t.clipboard.receivedTag)}</span>
+                                              <button type="button" data-copy-clip="${escapeHtml(item.id)}" class="zs-note-copy-btn">
                                                 ${state.copiedClipId === item.id ? svgIcon(UI_ICONS.check, 12, '#10b981') : svgIcon(UI_ICONS.copy, 12)}
                                                 <span>${escapeHtml(state.copiedClipId === item.id ? t.clipboard.copiedBtn : t.clipboard.copyBtn)}</span>
                                               </button>
                                             </div>
-                                            <pre class="font-mono" style="margin:0;white-space:pre-wrap;word-break:break-all;font-size:0.75rem;">${escapeHtml(item.text)}</pre>
+                                            <pre class="font-mono zs-note-text">${escapeHtml(item.text)}</pre>
                                           </div>`
                                           )
                                           .join('')}
@@ -3160,16 +3155,16 @@
         </div>
 
         <!-- Simplified Single-Row Footer -->
-        <footer style="margin-top:2rem;border-top:1px solid rgba(148,163,184,0.16);padding:1.25rem 0;">
-          <div class="zs-container" style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:0.5rem;font-size:0.75rem;color:${muted};">
-            <span style="display:inline-flex;align-items:center;gap:0.4rem;">
+        <footer class="zs-footer">
+          <div class="zs-container zs-footer-inner">
+            <span class="zs-row">
               ${svgIcon(UI_ICONS.shield, 14, '#10b981')}
               <span>${escapeHtml(t.footer.summary)}</span>
             </span>
             ${
               tm.fingerprint
-                ? `<span class="zs-pill font-mono" style="font-size:0.68rem;">
-                    ${escapeHtml(t.telemetry.fingerprintLabel)}: <strong style="color:#10b981;">${escapeHtml(tm.fingerprint)}</strong>
+                ? `<span class="zs-pill font-mono zs-fp-pill">
+                    ${escapeHtml(t.telemetry.fingerprintLabel)}: <strong class="zs-text-emerald">${escapeHtml(tm.fingerprint)}</strong>
                   </span>`
                 : ''
             }
@@ -3181,33 +3176,33 @@
           state.howItWorksOpen
             ? `<div class="zs-modal-overlay" id="zs-modal-how-backdrop">
                 <div class="zs-card zs-modal-box">
-                  <div style="padding:1rem 1.35rem;border-bottom:1px solid rgba(148,163,184,0.2);display:flex;justify-content:space-between;align-items:center;">
+                  <div class="zs-modal-header">
                     <div>
-                      <h2 style="font-size:1.1rem;font-weight:800;margin:0;">${escapeHtml(t.modals.howItWorks.title)}</h2>
-                      <p style="font-size:0.75rem;color:#94a3b8;margin:0.15rem 0 0 0;">${escapeHtml(t.modals.howItWorks.subtitle)}</p>
+                      <h2 class="zs-modal-title">${escapeHtml(t.modals.howItWorks.title)}</h2>
+                      <p class="zs-modal-subtitle">${escapeHtml(t.modals.howItWorks.subtitle)}</p>
                     </div>
-                    <button type="button" id="zs-close-how" class="zs-btn-ghost" style="padding:0.35rem 0.6rem;font-size:1rem;">✕</button>
+                    <button type="button" id="zs-close-how" class="zs-btn-ghost zs-modal-close">✕</button>
                   </div>
-                  <div style="padding:1.25rem;overflow-y:auto;display:flex;flex-direction:column;gap:0.75rem;">
-                    <div class="zs-subcard" style="padding:0.9rem;">
-                      <div style="font-size:0.85rem;font-weight:700;color:#10b981;">${escapeHtml(t.modals.howItWorks.step1Title)}</div>
-                      <p style="font-size:0.76rem;color:#94a3b8;margin:0.3rem 0 0 0;">${escapeHtml(t.modals.howItWorks.step1Desc)}</p>
+                  <div class="zs-modal-body">
+                    <div class="zs-subcard zs-step-card">
+                      <div class="zs-step-title zs-text-emerald">${escapeHtml(t.modals.howItWorks.step1Title)}</div>
+                      <p class="zs-step-desc">${escapeHtml(t.modals.howItWorks.step1Desc)}</p>
                     </div>
-                    <div class="zs-subcard" style="padding:0.9rem;">
-                      <div style="font-size:0.85rem;font-weight:700;color:#38bdf8;">${escapeHtml(t.modals.howItWorks.step2Title)}</div>
-                      <p style="font-size:0.76rem;color:#94a3b8;margin:0.3rem 0 0 0;">${escapeHtml(t.modals.howItWorks.step2Desc)}</p>
+                    <div class="zs-subcard zs-step-card">
+                      <div class="zs-step-title zs-text-sky">${escapeHtml(t.modals.howItWorks.step2Title)}</div>
+                      <p class="zs-step-desc">${escapeHtml(t.modals.howItWorks.step2Desc)}</p>
                     </div>
-                    <div class="zs-subcard" style="padding:0.9rem;">
-                      <div style="font-size:0.85rem;font-weight:700;color:#a78bfa;">${escapeHtml(t.modals.howItWorks.step3Title)}</div>
-                      <p style="font-size:0.76rem;color:#94a3b8;margin:0.3rem 0 0 0;">${escapeHtml(t.modals.howItWorks.step3Desc)}</p>
+                    <div class="zs-subcard zs-step-card">
+                      <div class="zs-step-title zs-text-violet">${escapeHtml(t.modals.howItWorks.step3Title)}</div>
+                      <p class="zs-step-desc">${escapeHtml(t.modals.howItWorks.step3Desc)}</p>
                     </div>
-                    <div class="zs-subcard" style="padding:0.9rem;">
-                      <div style="font-size:0.85rem;font-weight:700;color:#fbbf24;">${escapeHtml(t.modals.howItWorks.step4Title)}</div>
-                      <p style="font-size:0.76rem;color:#94a3b8;margin:0.3rem 0 0 0;">${escapeHtml(t.modals.howItWorks.step4Desc)}</p>
+                    <div class="zs-subcard zs-step-card">
+                      <div class="zs-step-title zs-text-amber">${escapeHtml(t.modals.howItWorks.step4Title)}</div>
+                      <p class="zs-step-desc">${escapeHtml(t.modals.howItWorks.step4Desc)}</p>
                     </div>
-                    <div style="padding:0.85rem;border-radius:0.75rem;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);">
-                      <div style="font-size:0.78rem;font-weight:700;color:#fbbf24;">💡 ${escapeHtml(t.modals.howItWorks.noteTitle)}</div>
-                      <p style="font-size:0.74rem;color:#cbd5e1;margin:0.25rem 0 0 0;">${escapeHtml(t.modals.howItWorks.noteDesc)}</p>
+                    <div class="zs-callout-amber">
+                      <div class="zs-callout-title zs-text-amber">${escapeHtml(t.modals.howItWorks.noteTitle)}</div>
+                      <p class="zs-callout-desc">${escapeHtml(t.modals.howItWorks.noteDesc)}</p>
                     </div>
                   </div>
                 </div>
@@ -3220,35 +3215,35 @@
           state.securityOpen
             ? `<div class="zs-modal-overlay" id="zs-modal-sec-backdrop">
                 <div class="zs-card zs-modal-box">
-                  <div style="padding:1rem 1.35rem;border-bottom:1px solid rgba(148,163,184,0.2);display:flex;justify-content:space-between;align-items:center;">
+                  <div class="zs-modal-header">
                     <div>
-                      <h2 style="font-size:1.1rem;font-weight:800;margin:0;">🛡️ ${escapeHtml(t.modals.security.title)}</h2>
-                      <p style="font-size:0.75rem;color:#94a3b8;margin:0.15rem 0 0 0;">${escapeHtml(t.modals.security.subtitle)}</p>
+                      <h2 class="zs-modal-title">${escapeHtml(t.modals.security.title)}</h2>
+                      <p class="zs-modal-subtitle">${escapeHtml(t.modals.security.subtitle)}</p>
                     </div>
-                    <button type="button" id="zs-close-sec" class="zs-btn-ghost" style="padding:0.35rem 0.6rem;font-size:1rem;">✕</button>
+                    <button type="button" id="zs-close-sec" class="zs-btn-ghost zs-modal-close">✕</button>
                   </div>
-                  <div style="padding:1.25rem;overflow-y:auto;display:flex;flex-direction:column;gap:0.9rem;">
+                  <div class="zs-modal-body-lg">
                     <div class="zs-grid-2">
-                      <div class="zs-subcard" style="padding:0.85rem;">
-                        <div style="font-size:0.8rem;font-weight:700;color:#10b981;">${escapeHtml(t.modals.security.arch1Title)}</div>
-                        <p style="font-size:0.74rem;color:#94a3b8;margin:0.3rem 0 0 0;">${escapeHtml(t.modals.security.arch1Desc)}</p>
+                      <div class="zs-subcard zs-sec-card">
+                        <div class="zs-sec-title zs-text-emerald">${escapeHtml(t.modals.security.arch1Title)}</div>
+                        <p class="zs-sec-desc">${escapeHtml(t.modals.security.arch1Desc)}</p>
                       </div>
-                      <div class="zs-subcard" style="padding:0.85rem;">
-                        <div style="font-size:0.8rem;font-weight:700;color:#38bdf8;">${escapeHtml(t.modals.security.arch2Title)}</div>
-                        <p style="font-size:0.74rem;color:#94a3b8;margin:0.3rem 0 0 0;">${escapeHtml(t.modals.security.arch2Desc)}</p>
+                      <div class="zs-subcard zs-sec-card">
+                        <div class="zs-sec-title zs-text-sky">${escapeHtml(t.modals.security.arch2Title)}</div>
+                        <p class="zs-sec-desc">${escapeHtml(t.modals.security.arch2Desc)}</p>
                       </div>
-                      <div class="zs-subcard" style="padding:0.85rem;">
-                        <div style="font-size:0.8rem;font-weight:700;color:#a78bfa;">${escapeHtml(t.modals.security.arch3Title)}</div>
-                        <p style="font-size:0.74rem;color:#94a3b8;margin:0.3rem 0 0 0;">${escapeHtml(t.modals.security.arch3Desc)}</p>
+                      <div class="zs-subcard zs-sec-card">
+                        <div class="zs-sec-title zs-text-violet">${escapeHtml(t.modals.security.arch3Title)}</div>
+                        <p class="zs-sec-desc">${escapeHtml(t.modals.security.arch3Desc)}</p>
                       </div>
-                      <div class="zs-subcard" style="padding:0.85rem;">
-                        <div style="font-size:0.8rem;font-weight:700;color:#fbbf24;">${escapeHtml(t.modals.security.arch4Title)}</div>
-                        <p style="font-size:0.74rem;color:#94a3b8;margin:0.3rem 0 0 0;">${escapeHtml(t.modals.security.arch4Desc)}</p>
+                      <div class="zs-subcard zs-sec-card">
+                        <div class="zs-sec-title zs-text-amber">${escapeHtml(t.modals.security.arch4Title)}</div>
+                        <p class="zs-sec-desc">${escapeHtml(t.modals.security.arch4Desc)}</p>
                       </div>
                     </div>
-                    <div style="padding:0.85rem;border-radius:0.75rem;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.28);">
-                      <div style="font-size:0.78rem;font-weight:700;color:#34d399;">✓ ${escapeHtml(t.modals.security.zeroPersistenceTitle)}</div>
-                      <p style="font-size:0.74rem;color:#cbd5e1;margin:0.25rem 0 0 0;">${escapeHtml(t.modals.security.zeroPersistenceDesc)}</p>
+                    <div class="zs-callout-emerald">
+                      <div class="zs-callout-title zs-text-emerald">${escapeHtml(t.modals.security.zeroPersistenceTitle)}</div>
+                      <p class="zs-callout-desc">${escapeHtml(t.modals.security.zeroPersistenceDesc)}</p>
                     </div>
                   </div>
                 </div>
@@ -3259,27 +3254,27 @@
       ${
         !state.disclaimerAccepted
           ? `<div class="zs-modal-overlay zs-modal-overlay-blocking" id="zs-modal-disclaimer" role="alertdialog" aria-modal="true" aria-labelledby="zs-disclaimer-title" aria-describedby="zs-disclaimer-body">
-              <div class="zs-card zs-modal-box" style="max-width:32rem;">
-                <div style="padding:1rem 1.35rem;border-bottom:1px solid rgba(148,163,184,0.2);display:flex;justify-content:space-between;align-items:center;gap:0.75rem;">
-                  <div style="display:flex;align-items:center;gap:0.65rem;min-width:0;">
-                    <div style="width:2.25rem;height:2.25rem;border-radius:0.65rem;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.28);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <div class="zs-card zs-modal-box zs-modal-box-sm">
+                <div class="zs-modal-header">
+                  <div class="zs-row zs-flex-1">
+                    <div class="zs-modal-icon-amber">
                       ${svgIcon(UI_ICONS.alert, 18, '#f59e0b')}
                     </div>
-                    <h2 id="zs-disclaimer-title" style="font-size:1.05rem;font-weight:700;margin:0;">${escapeHtml(t.modals.disclaimer.title)}</h2>
+                    <h2 id="zs-disclaimer-title" class="zs-modal-title-sm">${escapeHtml(t.modals.disclaimer.title)}</h2>
                   </div>
 
-                  <div role="group" aria-label="${escapeHtml(t.nav.langSwitchLabel)}" class="zs-tabs" style="padding:0.15rem;border-radius:0.55rem;flex-shrink:0;">
-                    <button type="button" id="zs-disclaimer-lang-tr" class="font-mono ${state.lang === 'tr' ? 'zs-tab-active' : ''}" style="padding:0.25rem 0.5rem;border-radius:0.4rem;font-size:0.7rem;font-weight:700;background:${state.lang === 'tr' ? (state.darkMode ? '#0f172a' : '#ffffff') : 'transparent'};color:${state.lang === 'tr' ? '#10b981' : muted};">TR</button>
-                    <button type="button" id="zs-disclaimer-lang-en" class="font-mono ${state.lang === 'en' ? 'zs-tab-active' : ''}" style="padding:0.25rem 0.5rem;border-radius:0.4rem;font-size:0.7rem;font-weight:700;background:${state.lang === 'en' ? (state.darkMode ? '#0f172a' : '#ffffff') : 'transparent'};color:${state.lang === 'en' ? '#10b981' : muted};">EN</button>
+                  <div role="group" aria-label="${escapeHtml(t.nav.langSwitchLabel)}" class="zs-lang-switch">
+                    <button type="button" id="zs-disclaimer-lang-tr" class="font-mono zs-lang-btn ${state.lang === 'tr' ? 'zs-tab-active' : ''}">TR</button>
+                    <button type="button" id="zs-disclaimer-lang-en" class="font-mono zs-lang-btn ${state.lang === 'en' ? 'zs-tab-active' : ''}">EN</button>
                   </div>
                 </div>
 
-                <div style="padding:1.35rem;overflow-y:auto;">
-                  <p id="zs-disclaimer-body" style="margin:0;font-size:0.875rem;line-height:1.68;color:${state.darkMode ? '#cbd5e1' : '#334155'};">${escapeHtml(t.modals.disclaimer.body)}</p>
+                <div class="zs-modal-body">
+                  <p id="zs-disclaimer-body" class="zs-disclaimer-text">${escapeHtml(t.modals.disclaimer.body)}</p>
                 </div>
 
-                <div style="padding:1rem 1.35rem;border-top:1px solid rgba(148,163,184,0.18);background:${state.darkMode ? 'rgba(2,6,23,0.45)' : '#f8fafc'};">
-                  <button type="button" id="zs-btn-accept-disclaimer" class="zs-btn-primary" style="width:100%;padding:0.8rem 1rem;font-size:0.88rem;">
+                <div class="zs-modal-footer">
+                  <button type="button" id="zs-btn-accept-disclaimer" class="zs-btn-primary zs-btn-accept-disclaimer">
                     ${svgIcon(UI_ICONS.check, 16, '#ffffff')}
                     <span>${escapeHtml(t.modals.disclaimer.acceptBtn)}</span>
                   </button>
