@@ -141,7 +141,7 @@ export interface TelemetryState {
   completedDownloadUrl: string | null;
 }
 
-export function usePeerTransfer() {
+export function usePeerTransfer(enabled = true) {
   const [role, setRoleState] = useState<TransferRole>('sender');
   const [senderSeed, setSenderSeed] = useState<string>(() => generateRandomSeed());
   const [receiverSeedInput, setReceiverSeedInput] = useState<string>('');
@@ -1092,8 +1092,9 @@ export function usePeerTransfer() {
     [cleanupPeerConnectionOnly, ensurePeerConnection, fullDisconnect, updatePhase]
   );
 
-  // Initialize sender session automatically on mount or when role/seed changes
+  // Initialize sender session automatically on mount or when role/seed changes (only after disclaimer accepted)
   useEffect(() => {
+    if (!enabled) return;
     if (role === 'sender') {
       void startSessionWithSeed(senderSeed, 'sender');
     } else {
@@ -1109,7 +1110,7 @@ export function usePeerTransfer() {
     return () => {
       fullDisconnect();
     };
-  }, [role, senderSeed, startSessionWithSeed, fullDisconnect]);
+  }, [enabled, role, senderSeed, startSessionWithSeed, fullDisconnect]);
 
   // Zero-trace cleanup + peer disconnect notice on pagehide / beforeunload
   useEffect(() => {

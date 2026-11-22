@@ -5,15 +5,17 @@ import { Navbar } from './Navbar';
 import { TransferWorkspace } from './TransferWorkspace';
 import { HowItWorksModal } from './HowItWorksModal';
 import { SecurityModal } from './SecurityModal';
+import { DisclaimerModal } from './DisclaimerModal';
 import { Footer } from './Footer';
 
 const ZeroSeedAppContent: React.FC = () => {
-  // Volatile in-memory theme state (never persisted to localStorage or cookies)
+  // Volatile in-memory theme & gate state (never persisted to localStorage or cookies)
   const [darkMode, setDarkMode] = useState<boolean>(true);
   const [howItWorksOpen, setHowItWorksOpen] = useState<boolean>(false);
   const [securityOpen, setSecurityOpen] = useState<boolean>(false);
+  const [disclaimerAccepted, setDisclaimerAccepted] = useState<boolean>(false);
 
-  const transfer = usePeerTransfer();
+  const transfer = usePeerTransfer(disclaimerAccepted);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -33,7 +35,7 @@ const ZeroSeedAppContent: React.FC = () => {
           onOpenHowItWorks={() => setHowItWorksOpen(true)}
           onOpenSecurity={() => setSecurityOpen(true)}
         />
-        <TransferWorkspace transfer={transfer} />
+        <TransferWorkspace transfer={transfer} blocked={!disclaimerAccepted} />
       </div>
 
       <Footer fingerprint={transfer.telemetry.fingerprint} />
@@ -45,6 +47,10 @@ const ZeroSeedAppContent: React.FC = () => {
       <SecurityModal
         open={securityOpen}
         onClose={() => setSecurityOpen(false)}
+      />
+      <DisclaimerModal
+        open={!disclaimerAccepted}
+        onAccept={() => setDisclaimerAccepted(true)}
       />
     </div>
   );

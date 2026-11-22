@@ -230,6 +230,11 @@
           zeroPersistenceDesc:
             'Dosyalarınız hiçbir zaman bir sunucu diskine kaydedilmez; yalnızca iki tarayıcı arasında anlık ve şifreli olarak akar.',
         },
+        disclaimer: {
+          title: 'Gizlilik ve Sorumluluk Uyarısı',
+          body: 'Dosyalarınız hesap açmanıza gerek kalmadan, sunucularımız veya bulut depolama üzerinden geçmeden doğrudan bağlantınız üzerinden aktarılır. Kullanıcı mahremiyetini korumak amacıyla transfer edilen dosyalar tarafımızca incelenmez veya güvenlik taramasından geçirilmez. Bu nedenle göndericilerin paylaştığı dosyalardan kaynaklanabilecek veri kaybı, virüs ya da diğer zararlı yazılımlardan hiçbir şekilde sorumluluk kabul edilmemektedir. Yalnızca kimliğini ve güvenilirliğini bildiğiniz kişilerden dosya alınız.',
+          acceptBtn: 'Okudum, Anladım',
+        },
       },
     },
     en: {
@@ -406,6 +411,11 @@
           zeroPersistenceTitle: 'Zero Storage Guarantee',
           zeroPersistenceDesc:
             'Your files never sit on a company server — they flow directly and privately between your browsers.',
+        },
+        disclaimer: {
+          title: 'Privacy & Disclaimer Notice',
+          body: 'Your files are transferred directly over your connection without requiring an account or passing through our servers or cloud storage. To protect user privacy, transferred files are not inspected or scanned for security threats by us. Accordingly, we assume no responsibility or liability whatsoever for data loss, viruses, or other malware resulting from files shared by senders. Only accept files from people whose identity and trustworthiness you know.',
+          acceptBtn: 'I Have Read and Understood',
         },
       },
     },
@@ -1603,6 +1613,7 @@
   const state = {
     lang: detectInitialLanguage(),
     darkMode: true,
+    disclaimerAccepted: false,
     howItWorksOpen: false,
     securityOpen: false,
     notesOpen: false,
@@ -2796,7 +2807,7 @@
       !isTunnelOpen && tm.phase !== 'error' && tm.phase !== 'idle' ? 'zs-pulse' : '';
 
     rootEl.innerHTML = `
-      <div class="zs-shell">
+      <div class="zs-shell" ${!state.disclaimerAccepted ? 'inert aria-hidden="true"' : ''}>
         <div>
           <!-- Simplified Navbar -->
           <header class="zs-navbar">
@@ -3245,6 +3256,38 @@
             : ''
         }
       </div>
+      ${
+        !state.disclaimerAccepted
+          ? `<div class="zs-modal-overlay zs-modal-overlay-blocking" id="zs-modal-disclaimer" role="alertdialog" aria-modal="true" aria-labelledby="zs-disclaimer-title" aria-describedby="zs-disclaimer-body">
+              <div class="zs-card zs-modal-box" style="max-width:32rem;">
+                <div style="padding:1rem 1.35rem;border-bottom:1px solid rgba(148,163,184,0.2);display:flex;justify-content:space-between;align-items:center;gap:0.75rem;">
+                  <div style="display:flex;align-items:center;gap:0.65rem;min-width:0;">
+                    <div style="width:2.25rem;height:2.25rem;border-radius:0.65rem;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.28);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                      ${svgIcon(UI_ICONS.alert, 18, '#f59e0b')}
+                    </div>
+                    <h2 id="zs-disclaimer-title" style="font-size:1.05rem;font-weight:700;margin:0;">${escapeHtml(t.modals.disclaimer.title)}</h2>
+                  </div>
+
+                  <div role="group" aria-label="${escapeHtml(t.nav.langSwitchLabel)}" class="zs-tabs" style="padding:0.15rem;border-radius:0.55rem;flex-shrink:0;">
+                    <button type="button" id="zs-disclaimer-lang-tr" class="font-mono ${state.lang === 'tr' ? 'zs-tab-active' : ''}" style="padding:0.25rem 0.5rem;border-radius:0.4rem;font-size:0.7rem;font-weight:700;background:${state.lang === 'tr' ? (state.darkMode ? '#0f172a' : '#ffffff') : 'transparent'};color:${state.lang === 'tr' ? '#10b981' : muted};">TR</button>
+                    <button type="button" id="zs-disclaimer-lang-en" class="font-mono ${state.lang === 'en' ? 'zs-tab-active' : ''}" style="padding:0.25rem 0.5rem;border-radius:0.4rem;font-size:0.7rem;font-weight:700;background:${state.lang === 'en' ? (state.darkMode ? '#0f172a' : '#ffffff') : 'transparent'};color:${state.lang === 'en' ? '#10b981' : muted};">EN</button>
+                  </div>
+                </div>
+
+                <div style="padding:1.35rem;overflow-y:auto;">
+                  <p id="zs-disclaimer-body" style="margin:0;font-size:0.875rem;line-height:1.68;color:${state.darkMode ? '#cbd5e1' : '#334155'};">${escapeHtml(t.modals.disclaimer.body)}</p>
+                </div>
+
+                <div style="padding:1rem 1.35rem;border-top:1px solid rgba(148,163,184,0.18);background:${state.darkMode ? 'rgba(2,6,23,0.45)' : '#f8fafc'};">
+                  <button type="button" id="zs-btn-accept-disclaimer" class="zs-btn-primary" style="width:100%;padding:0.8rem 1rem;font-size:0.88rem;">
+                    ${svgIcon(UI_ICONS.check, 16, '#ffffff')}
+                    <span>${escapeHtml(t.modals.disclaimer.acceptBtn)}</span>
+                  </button>
+                </div>
+              </div>
+            </div>`
+          : ''
+      }
     `;
 
     bindEvents();
@@ -3255,6 +3298,21 @@
       const el = document.getElementById(id);
       if (el) el.onclick = fn;
     };
+
+    on('zs-disclaimer-lang-tr', () => {
+      state.lang = 'tr';
+      renderApp();
+    });
+    on('zs-disclaimer-lang-en', () => {
+      state.lang = 'en';
+      renderApp();
+    });
+    on('zs-btn-accept-disclaimer', () => {
+      if (state.disclaimerAccepted) return;
+      state.disclaimerAccepted = true;
+      renderApp();
+      startSessionWithSeed(state.senderSeed, 'sender');
+    });
 
     on('zs-lang-tr', () => {
       state.lang = 'tr';
@@ -3537,6 +3595,18 @@
     });
 
     bindTelemetryEvents();
+
+    if (!state.disclaimerAccepted) {
+      const disclaimerModal = document.getElementById('zs-modal-disclaimer');
+      const acceptBtn = document.getElementById('zs-btn-accept-disclaimer');
+      if (
+        acceptBtn &&
+        disclaimerModal &&
+        (!document.activeElement || !disclaimerModal.contains(document.activeElement))
+      ) {
+        acceptBtn.focus();
+      }
+    }
   }
 
   async function acceptOffer(preferDisk) {
@@ -3599,6 +3669,7 @@
   let dragDepth = 0;
   window.addEventListener('dragenter', (e) => {
     e.preventDefault();
+    if (!state.disclaimerAccepted) return;
     if (e.dataTransfer && e.dataTransfer.types && Array.from(e.dataTransfer.types).includes('Files')) {
       dragDepth += 1;
       if (!state.isDraggingWindow) {
@@ -3610,11 +3681,13 @@
 
   window.addEventListener('dragover', (e) => {
     e.preventDefault();
+    if (!state.disclaimerAccepted) return;
     if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
   });
 
   window.addEventListener('dragleave', (e) => {
     e.preventDefault();
+    if (!state.disclaimerAccepted) return;
     dragDepth = Math.max(0, dragDepth - 1);
     if (dragDepth === 0 && state.isDraggingWindow) {
       state.isDraggingWindow = false;
@@ -3624,6 +3697,7 @@
 
   window.addEventListener('drop', async (e) => {
     e.preventDefault();
+    if (!state.disclaimerAccepted) return;
     dragDepth = 0;
     state.isDraggingWindow = false;
     if (e.dataTransfer) {
@@ -3659,10 +3733,9 @@
   window.addEventListener('pagehide', handleZeroTraceUnload);
   window.addEventListener('beforeunload', handleZeroTraceUnload);
 
-  // Boot application immediately on DOM ready
+  // Boot application immediately on DOM ready (wait for disclaimer acceptance before signaling)
   function boot() {
     renderApp();
-    startSessionWithSeed(state.senderSeed, 'sender');
   }
 
   if (document.readyState === 'loading') {

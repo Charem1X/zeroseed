@@ -30,6 +30,7 @@ type PeerTransferHookReturn = ReturnType<typeof usePeerTransfer>;
 
 interface TransferWorkspaceProps {
   transfer: PeerTransferHookReturn;
+  blocked?: boolean;
 }
 
 function formatBytes(bytes: number): string {
@@ -53,7 +54,10 @@ function formatDuration(seconds: number | null): string {
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
-export const TransferWorkspace: React.FC<TransferWorkspaceProps> = ({ transfer }) => {
+export const TransferWorkspace: React.FC<TransferWorkspaceProps> = ({
+  transfer,
+  blocked = false,
+}) => {
   const { t } = useI18n();
   const {
     role,
@@ -107,6 +111,7 @@ export const TransferWorkspace: React.FC<TransferWorkspaceProps> = ({ transfer }
   useEffect(() => {
     const onDragEnter = (e: DragEvent) => {
       e.preventDefault();
+      if (blocked) return;
       if (e.dataTransfer?.types?.includes('Files')) {
         dragDepthRef.current += 1;
         setIsDraggingWindow(true);
@@ -115,6 +120,7 @@ export const TransferWorkspace: React.FC<TransferWorkspaceProps> = ({ transfer }
 
     const onDragOver = (e: DragEvent) => {
       e.preventDefault();
+      if (blocked) return;
       if (e.dataTransfer) {
         e.dataTransfer.dropEffect = 'copy';
       }
@@ -122,6 +128,7 @@ export const TransferWorkspace: React.FC<TransferWorkspaceProps> = ({ transfer }
 
     const onDragLeave = (e: DragEvent) => {
       e.preventDefault();
+      if (blocked) return;
       dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
       if (dragDepthRef.current === 0) {
         setIsDraggingWindow(false);
@@ -130,6 +137,7 @@ export const TransferWorkspace: React.FC<TransferWorkspaceProps> = ({ transfer }
 
     const onDrop = async (e: DragEvent) => {
       e.preventDefault();
+      if (blocked) return;
       dragDepthRef.current = 0;
       setIsDraggingWindow(false);
       if (e.dataTransfer) {
@@ -148,7 +156,7 @@ export const TransferWorkspace: React.FC<TransferWorkspaceProps> = ({ transfer }
       window.removeEventListener('dragleave', onDragLeave);
       window.removeEventListener('drop', onDrop);
     };
-  }, [handleDataTransferDrop]);
+  }, [blocked, handleDataTransferDrop]);
 
   const handleCopySeed = async () => {
     try {

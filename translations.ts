@@ -170,6 +170,11 @@ export interface Translations {
       zeroPersistenceTitle: string;
       zeroPersistenceDesc: string;
     };
+    disclaimer: {
+      title: string;
+      body: string;
+      acceptBtn: string;
+    };
   };
 }
 
@@ -358,6 +363,11 @@ export const translations: Record<Language, Translations> = {
         zeroPersistenceDesc:
           'Dosyalarınız hiçbir zaman bir sunucu diskine kaydedilmez; yalnızca iki tarayıcı arasında anlık ve şifreli olarak akar.',
       },
+      disclaimer: {
+        title: 'Gizlilik ve Sorumluluk Uyarısı',
+        body: 'Dosyalarınız hesap açmanıza gerek kalmadan, sunucularımız veya bulut depolama üzerinden geçmeden doğrudan bağlantınız üzerinden aktarılır. Kullanıcı mahremiyetini korumak amacıyla transfer edilen dosyalar tarafımızca incelenmez veya güvenlik taramasından geçirilmez. Bu nedenle göndericilerin paylaştığı dosyalardan kaynaklanabilecek veri kaybı, virüs ya da diğer zararlı yazılımlardan hiçbir şekilde sorumluluk kabul edilmemektedir. Yalnızca kimliğini ve güvenilirliğini bildiğiniz kişilerden dosya alınız.',
+        acceptBtn: 'Okudum, Anladım',
+      },
     },
   },
   en: {
@@ -543,6 +553,11 @@ export const translations: Record<Language, Translations> = {
         zeroPersistenceTitle: 'Zero Storage Guarantee',
         zeroPersistenceDesc:
           'Your files never sit on a company server — they flow directly and privately between your browsers.',
+      },
+      disclaimer: {
+        title: 'Privacy & Disclaimer Notice',
+        body: 'Your files are transferred directly over your connection without requiring an account or passing through our servers or cloud storage. To protect user privacy, transferred files are not inspected or scanned for security threats by us. Accordingly, we assume no responsibility or liability whatsoever for data loss, viruses, or other malware resulting from files shared by senders. Only accept files from people whose identity and trustworthiness you know.',
+        acceptBtn: 'I Have Read and Understood',
       },
     },
   },
