@@ -7,6 +7,28 @@ export interface RelativeFileEntry {
   relativePath: string;
 }
 
+/**
+ * Sanitizes an archive entry path to prevent Zip Slip (path traversal),
+ * drive-letter injection, control chars, and Unicode BiDi filename spoofing.
+ */
+export function sanitizeArchivePath(rawPath: string): string {
+  if (typeof rawPath !== 'string') return 'file.bin';
+
+  let cleaned = rawPath
+    .replace(/\\/g, '/')
+    .replace(/^[a-zA-Z]:/, '')
+    .replace(/[\x00-\x1f\x7f]/g, '')
+    .replace(/[\u202A-\u202E\u2066-\u2069\u200E\u200F\u061C]/g, '');
+
+  const safeSegments = cleaned
+    .split('/')
+    .map((seg) => seg.replace(/[<>:"|?*]/g, '_').trim())
+    .filter((seg) => seg.length > 0 && seg !== '.' && seg !== '..')
+    .map((seg) => (seg.length > 150 ? seg.slice(0, 150) : seg));
+
+  return safeSegments.length > 0 ? safeSegments.join('/') : 'file.bin';
+}
+
 // Minimal WebKit FileSystemEntry typings for recursive folder drag-and-drop
 interface WebKitFileEntry {
   isFile: boolean;
@@ -58,7 +80,8 @@ export async function extractDroppedEntries(
 
     if (webkitEntries.length > 0) {
       for (const entry of webkitEntries) {
-        await traverseEntry(entry, '', results);
+        if (results.length >= SITE_CONFIG.maxArchiveEntries) break;
+        await traverseEntry(entry, '', results, 0);
       }
       return { entries: results, hasDirectory, rootFolderName };
     }
@@ -67,12 +90,13 @@ export async function extractDroppedEntries(
   // Standard FileList fallback
   const files = dataTransfer.files;
   for (let i = 0; i < files.length; i++) {
+    if (results.length >= SITE_CONFIG.maxArchiveEntries) break;
     const f = files[i];
-    const rel = f.webkitRelativePath || f.name;
+    const rel = sanitizeArchivePath(f.webkitRelativePath || f.name);
     if (f.webkitRelativePath && f.webkitRelativePath.includes('/')) {
       hasDirectory = true;
       if (!rootFolderName) {
-        rootFolderName = f.webkitRelativePath.split('/')[0];
+        rootFolderName = sanitizeArchivePath(f.webkitRelativePath.split('/')[0]);
       }
     }
     results.push({ file: f, relativePath: rel });
@@ -84,9 +108,16 @@ export async function extractDroppedEntries(
 async function traverseEntry(
   entry: WebKitFileEntry,
   parentPath: string,
-  results: RelativeFileEntry[]
+  results: RelativeFileEntry[],
+  depth: number
 ): Promise<void> {
-  const currentPath = parentPath ? `${parentPath}/${entry.name}` : entry.name;
+  if (depth > SITE_CONFIG.maxArchiveDepth || results.length >= SITE_CONFIG.maxArchiveEntries) {
+    return;
+  }
+
+  const currentPath = sanitizeArchivePath(
+    parentPath ? `${parentPath}/${entry.name}` : entry.name
+  );
 
   if (entry.isFile && entry.file) {
     const file = await new Promise<File>((resolve, reject) => {
@@ -100,7 +131,8 @@ async function traverseEntry(
     const reader = entry.createReader();
     const childEntries = await readAllDirectoryEntries(reader);
     for (const child of childEntries) {
-      await traverseEntry(child, currentPath, results);
+      if (results.length >= SITE_CONFIG.maxArchiveEntries) break;
+      await traverseEntry(child, currentPath, results, depth + 1);
     }
   }
 }
@@ -137,13 +169,15 @@ export function filesToRelativeEntries(fileList: FileList | File[]): {
 
   const arr = Array.from(fileList);
   for (const file of arr) {
-    const rel = file.webkitRelativePath && file.webkitRelativePath.length > 0
+    if (entries.length >= SITE_CONFIG.maxArchiveEntries) break;
+    const rawRel = file.webkitRelativePath && file.webkitRelativePath.length > 0
       ? file.webkitRelativePath
       : file.name;
+    const rel = sanitizeArchivePath(rawRel);
     if (file.webkitRelativePath && file.webkitRelativePath.includes('/')) {
       hasDirectory = true;
       if (!rootFolderName) {
-        rootFolderName = file.webkitRelativePath.split('/')[0];
+        rootFolderName = sanitizeArchivePath(file.webkitRelativePath.split('/')[0]);
       }
     }
     entries.push({ file, relativePath: rel });
@@ -214,7 +248,7 @@ export async function streamEntriesAsZipChunks(
     if (shouldAbort()) break;
     if (streamError) throw streamError;
 
-    const cleanPath = item.relativePath.replace(/^\/+/, '');
+    const cleanPath = sanitizeArchivePath(item.relativePath);
     const zipItem = new ZipPassThrough(cleanPath);
     if (item.file.lastModified) {
       zipItem.mtime = new Date(item.file.lastModified);

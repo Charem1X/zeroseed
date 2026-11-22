@@ -11,6 +11,18 @@ export const SITE_CONFIG = {
   maxBufferedAmount: 4 * 1024 * 1024, // 4 MB high-water mark
   lowBufferedThreshold: 1 * 1024 * 1024, // 1 MB low-water mark
   brokerTimeoutMs: 3000,
+  maxSignalBytes: 65_536,
+  signalFreshnessMs: 60_000,
+  maxSeenSignalNonces: 512,
+  maxBrokerFailoverAttempts: 6,
+  maxPendingIceCandidates: 64,
+  maxSdpLength: 32_768,
+  maxIceCandidateLength: 2048,
+  maxRamFileBytes: 512 * 1024 * 1024, // 512 MB cap for in-memory Blob fallback
+  maxClipboardChars: 65_536,
+  maxClipboardItems: 50,
+  maxArchiveDepth: 32,
+  maxArchiveEntries: 10_000,
   stunServers: [
     'stun:stun.l.google.com:19302',
     'stun:stun1.l.google.com:19302',

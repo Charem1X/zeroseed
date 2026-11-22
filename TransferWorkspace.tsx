@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import { useI18n } from './translations';
 import { usePeerTransfer } from './usePeerTransfer';
-import { isFileSystemAccessSupported } from './fileWriter';
+import { isFileSystemAccessSupported, sanitizeFileName } from './fileWriter';
 import { SITE_CONFIG } from './site';
 
 type PeerTransferHookReturn = ReturnType<typeof usePeerTransfer>;
@@ -543,6 +543,7 @@ export const TransferWorkspace: React.FC<TransferWorkspaceProps> = ({ transfer }
                       onChange={(e) => setReceiverSeedInput(e.target.value)}
                       placeholder={t.receiver.seedInputPlaceholder}
                       disabled={isStreaming}
+                      maxLength={64}
                       autoComplete="off"
                       spellCheck={false}
                       className="flex-1 px-4 py-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 focus:border-sky-500 focus:outline-none font-mono text-base text-slate-900 dark:text-white"
@@ -790,15 +791,18 @@ export const TransferWorkspace: React.FC<TransferWorkspaceProps> = ({ transfer }
             {telemetry.phase === 'completed' && (
               <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between gap-2 text-xs text-emerald-700 dark:text-emerald-300 font-semibold">
                 <span>{t.telemetry.transferComplete}</span>
-                {telemetry.completedDownloadUrl && telemetry.activeFileName && (
-                  <a
-                    href={telemetry.completedDownloadUrl}
-                    download={telemetry.activeFileName}
-                    className="px-3 py-1 rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 transition-colors"
-                  >
-                    {t.telemetry.downloadAgain}
-                  </a>
-                )}
+                {telemetry.completedDownloadUrl &&
+                  telemetry.completedDownloadUrl.startsWith('blob:') &&
+                  telemetry.activeFileName && (
+                    <a
+                      href={telemetry.completedDownloadUrl}
+                      download={sanitizeFileName(telemetry.activeFileName)}
+                      rel="noopener noreferrer"
+                      className="px-3 py-1 rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 transition-colors"
+                    >
+                      {t.telemetry.downloadAgain}
+                    </a>
+                  )}
               </div>
             )}
           </div>
@@ -825,6 +829,7 @@ export const TransferWorkspace: React.FC<TransferWorkspaceProps> = ({ transfer }
                 onChange={(e) => setClipboardDraft(e.target.value)}
                 placeholder={t.clipboard.placeholder}
                 disabled={!isTunnelOpen}
+                maxLength={SITE_CONFIG.maxClipboardChars}
                 className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 focus:border-sky-500 focus:outline-none text-xs font-mono text-slate-900 dark:text-slate-100 resize-none disabled:opacity-50"
               />
               <div className="flex justify-end gap-2">

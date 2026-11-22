@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { SITE_CONFIG } from './site';
 import {
   generateRandomSeed,
+  generateRandomHex,
+  createSessionIvPrefix,
   deriveDualKeys,
   isValidSeedFormat,
   normalizeSeed,
@@ -21,6 +23,7 @@ import {
   StreamFileWriter,
   WriteStorageMode,
   isFileSystemAccessSupported,
+  sanitizeFileName,
 } from './fileWriter';
 import {
   RelativeFileEntry,
@@ -181,16 +184,31 @@ export function usePeerTransfer() {
     expectedNextChunk: number;
     bytesWritten: number;
     totalBytes: number;
+    maxAllowedBytes: number;
     totalChunks: number;
     fileName: string;
     isFolderArchive: boolean;
+    disconnectedForResume: boolean;
     startTime: number;
   } | null>(null);
 
   const abortTransferFlagRef = useRef<boolean>(false);
+  const pendingSenderOfferIdRef = useRef<string | null>(null);
+  const activeBlobUrlRef = useRef<string | null>(null);
   const acceptResolverRef = useRef<
     ((decision: { storageMode: WriteStorageMode; resumeFromChunk: number }) => void) | null
   >(null);
+
+  const revokeActiveBlobUrl = useCallback(() => {
+    if (activeBlobUrlRef.current) {
+      try {
+        URL.revokeObjectURL(activeBlobUrlRef.current);
+      } catch {
+        // ignore
+      }
+      activeBlobUrlRef.current = null;
+    }
+  }, []);
 
   const speedTrackerRef = useRef<{
     lastTimestamp: number;
@@ -238,28 +256,37 @@ export function usePeerTransfer() {
 
   const fullDisconnect = useCallback(() => {
     abortTransferFlagRef.current = true;
+    pendingSenderOfferIdRef.current = null;
+    if (acceptResolverRef.current) {
+      acceptResolverRef.current({ storageMode: 'ram', resumeFromChunk: 0 });
+      acceptResolverRef.current = null;
+    }
     cleanupPeerConnectionOnly();
     if (signalingRef.current) {
       signalingRef.current.destroy();
       signalingRef.current = null;
     }
+    revokeActiveBlobUrl();
     setBrokerStatus((prev) => ({ ...prev, connected: false, locked: false }));
-  }, [cleanupPeerConnectionOnly]);
+  }, [cleanupPeerConnectionOnly, revokeActiveBlobUrl]);
 
   /**
-   * Sends an AES-GCM-256 encrypted JSON control message over the open RTCDataChannel.
+   * Sends an AES-GCM-256 encrypted JSON control message over the open RTCDataChannel
+   * using the HKDF-separated `transferKey` and domain-separated control AAD.
    */
   const sendControlFrame = useCallback(async (frame: ControlFrame) => {
     const dc = dataChannelRef.current;
     const derived = derivedRef.current;
     if (!dc || dc.readyState !== 'open' || !derived) return;
 
-    const encryptedStr = await encryptJsonPayload(derived.aesKey, frame);
+    const aadContext = `zs-ctrl-v1:${derived.topicId}`;
+    const encryptedStr = await encryptJsonPayload(derived.transferKey, frame, aadContext);
     dc.send(encryptedStr);
   }, []);
 
   /**
    * Handles incoming binary 64 KB chunk frames on the Receiver side.
+   * Enforces sequential chunk indices, fileId-bound GCM AAD, and byte caps.
    */
   const handleIncomingBinaryChunk = useCallback(
     async (packetBuffer: ArrayBuffer) => {
@@ -268,11 +295,25 @@ export function usePeerTransfer() {
       if (!derived || !rx) return;
 
       try {
-        const { chunkIndex, data } = await decryptChunkPacket(derived.aesKey, packetBuffer);
+        const { chunkIndex, data } = await decryptChunkPacket(
+          derived.transferKey,
+          packetBuffer,
+          rx.fileId
+        );
 
         // Ignore duplicate chunks if already written during resume
         if (chunkIndex <= rx.lastChunkIndex) {
           return;
+        }
+
+        // Block chunk-skipping or out-of-order injection
+        if (chunkIndex !== rx.expectedNextChunk) {
+          throw new AuthTagMismatchError(chunkIndex);
+        }
+
+        // Block file-size overrun / disk-fill attack
+        if (rx.bytesWritten + data.byteLength > rx.maxAllowedBytes) {
+          throw new AuthTagMismatchError(chunkIndex);
         }
 
         await rx.writer.writeChunk(data);
@@ -332,7 +373,7 @@ export function usePeerTransfer() {
         }));
       } catch (err) {
         if (err instanceof AuthTagMismatchError) {
-          // Immediately abort transfer on GCM Auth Tag verification failure
+          // Immediately abort transfer on GCM Auth Tag verification or sequence failure
           setErrorCode('authTagMismatch');
           updatePhase('error');
           await rx.writer.abort();
@@ -354,7 +395,8 @@ export function usePeerTransfer() {
   );
 
   /**
-   * Handles incoming AES-GCM encrypted JSON control frames on the RTCDataChannel.
+   * Handles incoming AES-GCM encrypted JSON control frames on the RTCDataChannel
+   * with strict schema validation and integrity checks.
    */
   const handleIncomingControlFrame = useCallback(
     async (encryptedText: string) => {
@@ -363,47 +405,93 @@ export function usePeerTransfer() {
 
       let frame: ControlFrame;
       try {
-        frame = await decryptJsonPayload<ControlFrame>(derived.aesKey, encryptedText);
+        const aadContext = `zs-ctrl-v1:${derived.topicId}`;
+        frame = await decryptJsonPayload<ControlFrame>(
+          derived.transferKey,
+          encryptedText,
+          aadContext
+        );
       } catch {
         setErrorCode('authTagMismatch');
         updatePhase('error');
         return;
       }
 
+      if (!frame || typeof frame !== 'object' || typeof frame.type !== 'string') {
+        return;
+      }
+
       switch (frame.type) {
         case 'FILE_OFFER': {
-          const { offer } = frame;
+          const o = frame.offer;
+          if (
+            !o ||
+            typeof o !== 'object' ||
+            typeof o.fileId !== 'string' ||
+            o.fileId.length === 0 ||
+            o.fileId.length > 256 ||
+            typeof o.fileName !== 'string' ||
+            typeof o.fileSize !== 'number' ||
+            !Number.isFinite(o.fileSize) ||
+            o.fileSize < 0 ||
+            typeof o.totalChunks !== 'number' ||
+            !Number.isInteger(o.totalChunks) ||
+            o.totalChunks < 0 ||
+            typeof o.itemCount !== 'number' ||
+            !Number.isInteger(o.itemCount) ||
+            o.itemCount < 1 ||
+            o.itemCount > SITE_CONFIG.maxArchiveEntries
+          ) {
+            return;
+          }
+
+          const safeOffer: TransferMetadataOffer = {
+            fileId: o.fileId,
+            fileName: sanitizeFileName(o.fileName),
+            fileSize: o.fileSize,
+            mimeType: 'application/octet-stream',
+            isFolderArchive: Boolean(o.isFolderArchive),
+            itemCount: o.itemCount,
+            totalChunks: o.totalChunks,
+            resumable: Boolean(o.resumable),
+            knownLastAckChunk: Number.isInteger(o.knownLastAckChunk) ? o.knownLastAckChunk : -1,
+          };
+
           const existingRx = receiverStateRef.current;
 
-          // Check if we already have an active open writer for this exact single file (auto-resume!)
+          // Only auto-resume if the prior session genuinely disconnected mid-transfer for the same file
           if (
             existingRx &&
-            existingRx.fileId === offer.fileId &&
-            offer.resumable &&
+            existingRx.disconnectedForResume &&
+            existingRx.fileId === safeOffer.fileId &&
+            safeOffer.resumable &&
+            safeOffer.fileSize === existingRx.totalBytes &&
+            safeOffer.totalChunks === existingRx.totalChunks &&
             existingRx.lastChunkIndex >= 0
           ) {
+            existingRx.disconnectedForResume = false;
             const resumeFrom = existingRx.lastChunkIndex + 1;
             setTelemetry((prev) => ({
               ...prev,
               phase: 'transferring',
               resumedFromChunk: resumeFrom,
-              activeFileName: offer.fileName,
+              activeFileName: safeOffer.fileName,
             }));
             await sendControlFrame({
               type: 'FILE_ACCEPT',
-              fileId: offer.fileId,
+              fileId: safeOffer.fileId,
               storageMode: existingRx.writer.mode,
               resumeFromChunk: resumeFrom,
             });
             return;
           }
 
-          setIncomingOffer(offer);
+          setIncomingOffer(safeOffer);
           setTelemetry((prev) => ({
             ...prev,
-            activeFileName: offer.fileName,
-            totalBytes: offer.fileSize,
-            totalChunks: offer.totalChunks,
+            activeFileName: safeOffer.fileName,
+            totalBytes: safeOffer.fileSize,
+            totalChunks: safeOffer.totalChunks,
             progressPercent: 0,
             bytesTransferred: 0,
             completedDownloadUrl: null,
@@ -412,6 +500,16 @@ export function usePeerTransfer() {
         }
 
         case 'FILE_ACCEPT': {
+          if (
+            typeof frame.fileId !== 'string' ||
+            frame.fileId !== pendingSenderOfferIdRef.current ||
+            (frame.storageMode !== 'disk' && frame.storageMode !== 'ram') ||
+            typeof frame.resumeFromChunk !== 'number' ||
+            !Number.isInteger(frame.resumeFromChunk) ||
+            frame.resumeFromChunk < 0
+          ) {
+            return;
+          }
           if (acceptResolverRef.current) {
             acceptResolverRef.current({
               storageMode: frame.storageMode,
@@ -423,6 +521,15 @@ export function usePeerTransfer() {
         }
 
         case 'ACK': {
+          if (
+            typeof frame.fileId !== 'string' ||
+            frame.fileId.length > 256 ||
+            typeof frame.lastChunkIndex !== 'number' ||
+            !Number.isInteger(frame.lastChunkIndex) ||
+            frame.lastChunkIndex < -1
+          ) {
+            return;
+          }
           senderAckMapRef.current.set(frame.fileId, frame.lastChunkIndex);
           setTelemetry((prev) => ({
             ...prev,
@@ -432,15 +539,43 @@ export function usePeerTransfer() {
         }
 
         case 'FILE_COMPLETE': {
+          if (
+            typeof frame.fileId !== 'string' ||
+            typeof frame.totalChunks !== 'number' ||
+            !Number.isInteger(frame.totalChunks) ||
+            frame.totalChunks < 0 ||
+            typeof frame.totalBytes !== 'number' ||
+            !Number.isInteger(frame.totalBytes) ||
+            frame.totalBytes < 0
+          ) {
+            return;
+          }
+
           const rx = receiverStateRef.current;
           if (rx && rx.fileId === frame.fileId) {
+            // Integrity check: ensure all expected chunks and exact byte count were written
+            const countValid =
+              rx.expectedNextChunk === frame.totalChunks &&
+              rx.bytesWritten === frame.totalBytes &&
+              (rx.isFolderArchive || frame.totalBytes === rx.totalBytes);
+
+            if (!countValid) {
+              await rx.writer.abort();
+              receiverStateRef.current = null;
+              setErrorCode('authTagMismatch');
+              updatePhase('error');
+              return;
+            }
+
             // Send final ACK
             await sendControlFrame({
               type: 'ACK',
               fileId: rx.fileId,
               lastChunkIndex: rx.lastChunkIndex,
             });
+            revokeActiveBlobUrl();
             const downloadUrl = await rx.writer.finalize();
+            activeBlobUrlRef.current = downloadUrl;
             receiverStateRef.current = null;
             setIncomingOffer(null);
             setTelemetry((prev) => ({
@@ -461,6 +596,11 @@ export function usePeerTransfer() {
 
         case 'TRANSFER_ABORT': {
           abortTransferFlagRef.current = true;
+          pendingSenderOfferIdRef.current = null;
+          if (acceptResolverRef.current) {
+            acceptResolverRef.current({ storageMode: 'ram', resumeFromChunk: 0 });
+            acceptResolverRef.current = null;
+          }
           if (receiverStateRef.current) {
             await receiverStateRef.current.writer.abort();
             receiverStateRef.current = null;
@@ -473,20 +613,31 @@ export function usePeerTransfer() {
         }
 
         case 'CLIPBOARD_TEXT': {
-          setClipboardItems((prev) => [
-            {
-              id: frame.id,
-              text: frame.text,
-              direction: 'received',
-              timestamp: frame.timestamp,
-            },
-            ...prev,
-          ]);
+          if (typeof frame.text !== 'string' || frame.text.length === 0) {
+            return;
+          }
+          const boundedText = frame.text.slice(0, SITE_CONFIG.maxClipboardChars);
+          const localId = `cb_${generateRandomHex(6)}`;
+          const safeTs =
+            typeof frame.timestamp === 'number' && Number.isFinite(frame.timestamp)
+              ? frame.timestamp
+              : Date.now();
+          setClipboardItems((prev) =>
+            [
+              {
+                id: localId,
+                text: boundedText,
+                direction: 'received' as const,
+                timestamp: safeTs,
+              },
+              ...prev,
+            ].slice(0, SITE_CONFIG.maxClipboardItems)
+          );
           break;
         }
       }
     },
-    [sendControlFrame, updatePhase]
+    [revokeActiveBlobUrl, sendControlFrame, updatePhase]
   );
 
   /**
@@ -521,6 +672,9 @@ export function usePeerTransfer() {
       };
 
       dc.onclose = () => {
+        if (receiverStateRef.current) {
+          receiverStateRef.current.disconnectedForResume = true;
+        }
         setTelemetry((prev) => {
           if (prev.phase === 'completed') return prev;
           setErrorCode('peerDisconnected');
@@ -566,6 +720,9 @@ export function usePeerTransfer() {
       pc.onconnectionstatechange = () => {
         const state = pc.connectionState;
         if (state === 'disconnected' || state === 'failed') {
+          if (receiverStateRef.current) {
+            receiverStateRef.current.disconnectedForResume = true;
+          }
           setTelemetry((prev) => {
             if (prev.phase === 'completed') return prev;
             setErrorCode('peerDisconnected');
@@ -625,7 +782,7 @@ export function usePeerTransfer() {
 
         const signaling = new BlindSignalingChannel({
           topicId: derived.topicId,
-          aesKey: derived.aesKey,
+          aesKey: derived.signalKey,
           onStatusChange: (status) => {
             setBrokerStatus(status);
             if (status.connected && !status.locked) {
@@ -655,13 +812,24 @@ export function usePeerTransfer() {
           onSignal: async (payload: DecryptedSignalPayload, senderId: string) => {
             if (signaling.isLocked()) return;
 
+            // Enforce role separation so a spoofed/reflected role payload is ignored
+            if (activeRole === 'sender' && payload.role !== 'receiver') return;
+            if (activeRole === 'receiver' && payload.role !== 'sender') return;
+
             // Lock onto the first peer that responds in the room
             if (remotePeerIdRef.current && remotePeerIdRef.current !== senderId) {
               return;
             }
 
             if (activeRole === 'sender') {
-              if (payload.type === 'PEER_HELLO' && payload.role === 'receiver') {
+              if (payload.type === 'PEER_HELLO') {
+                // Prevent duplicate/replayed PEER_HELLO from tearing down an active handshake
+                if (
+                  peerConnRef.current &&
+                  peerConnRef.current.connectionState !== 'failed'
+                ) {
+                  return;
+                }
                 remotePeerIdRef.current = senderId;
                 updatePhase('handshaking');
                 cleanupPeerConnectionOnly();
@@ -680,9 +848,18 @@ export function usePeerTransfer() {
                     : offer,
                 });
               } else if (payload.type === 'SDP_ANSWER' && payload.sdp) {
+                const sdp = payload.sdp;
+                if (
+                  sdp.type !== 'answer' ||
+                  typeof sdp.sdp !== 'string' ||
+                  sdp.sdp.length > SITE_CONFIG.maxSdpLength ||
+                  !/a=fingerprint:sha-256 /i.test(sdp.sdp)
+                ) {
+                  return;
+                }
                 const pc = peerConnRef.current;
                 if (pc && pc.signalingState === 'have-local-offer') {
-                  await pc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
+                  await pc.setRemoteDescription(new RTCSessionDescription(sdp));
                   for (const cand of pendingIceCandidatesRef.current) {
                     try {
                       await pc.addIceCandidate(new RTCIceCandidate(cand));
@@ -693,20 +870,27 @@ export function usePeerTransfer() {
                   pendingIceCandidatesRef.current = [];
                 }
               } else if (payload.type === 'ICE_CANDIDATE' && payload.candidate) {
+                const cand = payload.candidate;
+                if (
+                  typeof cand.candidate !== 'string' ||
+                  cand.candidate.length > SITE_CONFIG.maxIceCandidateLength
+                ) {
+                  return;
+                }
                 const pc = peerConnRef.current;
                 if (pc && pc.remoteDescription) {
                   try {
-                    await pc.addIceCandidate(new RTCIceCandidate(payload.candidate));
+                    await pc.addIceCandidate(new RTCIceCandidate(cand));
                   } catch {
                     // ignore
                   }
-                } else {
-                  pendingIceCandidatesRef.current.push(payload.candidate);
+                } else if (pendingIceCandidatesRef.current.length < SITE_CONFIG.maxPendingIceCandidates) {
+                  pendingIceCandidatesRef.current.push(cand);
                 }
               }
             } else {
               // Receiver role
-              if (payload.type === 'PEER_HELLO' && payload.role === 'sender') {
+              if (payload.type === 'PEER_HELLO') {
                 // Reply with PEER_HELLO so the sender initiates the SDP_OFFER
                 await signaling.publishEncrypted({
                   type: 'PEER_HELLO',
@@ -714,13 +898,29 @@ export function usePeerTransfer() {
                   sessionId: signaling.getSenderId(),
                 });
               } else if (payload.type === 'SDP_OFFER' && payload.sdp) {
+                const sdp = payload.sdp;
+                if (
+                  sdp.type !== 'offer' ||
+                  typeof sdp.sdp !== 'string' ||
+                  sdp.sdp.length > SITE_CONFIG.maxSdpLength ||
+                  !/a=fingerprint:sha-256 /i.test(sdp.sdp)
+                ) {
+                  return;
+                }
+                // Ignore duplicate SDP_OFFER while handshake/connection is active
+                if (
+                  peerConnRef.current &&
+                  peerConnRef.current.connectionState !== 'failed'
+                ) {
+                  return;
+                }
                 remotePeerIdRef.current = senderId;
                 updatePhase('handshaking');
                 cleanupPeerConnectionOnly();
                 remotePeerIdRef.current = senderId;
 
                 const pc = ensurePeerConnection('receiver');
-                await pc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
+                await pc.setRemoteDescription(new RTCSessionDescription(sdp));
 
                 for (const cand of pendingIceCandidatesRef.current) {
                   try {
@@ -743,15 +943,22 @@ export function usePeerTransfer() {
                     : answer,
                 });
               } else if (payload.type === 'ICE_CANDIDATE' && payload.candidate) {
+                const cand = payload.candidate;
+                if (
+                  typeof cand.candidate !== 'string' ||
+                  cand.candidate.length > SITE_CONFIG.maxIceCandidateLength
+                ) {
+                  return;
+                }
                 const pc = peerConnRef.current;
                 if (pc && pc.remoteDescription) {
                   try {
-                    await pc.addIceCandidate(new RTCIceCandidate(payload.candidate));
+                    await pc.addIceCandidate(new RTCIceCandidate(cand));
                   } catch {
                     // ignore
                   }
-                } else {
-                  pendingIceCandidatesRef.current.push(payload.candidate);
+                } else if (pendingIceCandidatesRef.current.length < SITE_CONFIG.maxPendingIceCandidates) {
+                  pendingIceCandidatesRef.current.push(cand);
                 }
               }
             }
@@ -787,14 +994,41 @@ export function usePeerTransfer() {
     };
   }, [role, senderSeed, startSessionWithSeed, fullDisconnect]);
 
+  // Zero-trace cleanup on pagehide
+  useEffect(() => {
+    const handlePageHide = () => {
+      fullDisconnect();
+      if (receiverStateRef.current) {
+        void receiverStateRef.current.writer.abort();
+        receiverStateRef.current = null;
+      }
+      senderAckMapRef.current.clear();
+      setClipboardItems([]);
+    };
+    window.addEventListener('pagehide', handlePageHide);
+    return () => {
+      window.removeEventListener('pagehide', handlePageHide);
+    };
+  }, [fullDisconnect]);
+
   /**
-   * Switches between Sender and Receiver tabs.
+   * Switches between Sender and Receiver tabs and clears volatile clipboard/resume state.
    */
-  const switchRole = useCallback((nextRole: TransferRole) => {
-    setErrorCode(null);
-    setIncomingOffer(null);
-    setRoleState(nextRole);
-  }, []);
+  const switchRole = useCallback(
+    (nextRole: TransferRole) => {
+      setErrorCode(null);
+      setIncomingOffer(null);
+      setClipboardItems([]);
+      revokeActiveBlobUrl();
+      if (receiverStateRef.current) {
+        void receiverStateRef.current.writer.abort();
+        receiverStateRef.current = null;
+      }
+      senderAckMapRef.current.clear();
+      setRoleState(nextRole);
+    },
+    [revokeActiveBlobUrl]
+  );
 
   /**
    * Generates a fresh CSPRNG Seed for the Sender and reconnects to the new blind topic.
@@ -802,8 +1036,14 @@ export function usePeerTransfer() {
   const regenerateSenderSeed = useCallback(() => {
     const fresh = generateRandomSeed();
     senderAckMapRef.current.clear();
+    setClipboardItems([]);
+    revokeActiveBlobUrl();
+    if (receiverStateRef.current) {
+      void receiverStateRef.current.writer.abort();
+      receiverStateRef.current = null;
+    }
     setSenderSeed(fresh);
-  }, []);
+  }, [revokeActiveBlobUrl]);
 
   /**
    * Connects the Receiver using the entered Seed code (also supports reconnecting to resume).
@@ -909,12 +1149,15 @@ export function usePeerTransfer() {
       ? `single::${SingleEntry.file.name}::${SingleEntry.file.size}::${SingleEntry.file.lastModified}`
       : `zip::${archiveName}::${totalRawBytes}`;
 
-    const totalChunksEstimate = Math.max(1, Math.ceil(totalRawBytes / SITE_CONFIG.chunkSize));
+    const totalChunksEstimate =
+      SingleEntry && totalRawBytes === 0
+        ? 0
+        : Math.max(1, Math.ceil(totalRawBytes / SITE_CONFIG.chunkSize));
     const knownLastAck = SingleEntry ? (senderAckMapRef.current.get(fileId) ?? -1) : -1;
 
     const offer: TransferMetadataOffer = {
       fileId,
-      fileName,
+      fileName: sanitizeFileName(fileName),
       fileSize: totalRawBytes,
       mimeType,
       isFolderArchive: isMultiOrFolder,
@@ -923,6 +1166,8 @@ export function usePeerTransfer() {
       resumable: !isMultiOrFolder,
       knownLastAckChunk: knownLastAck,
     };
+
+    pendingSenderOfferIdRef.current = fileId;
 
     const acceptPromise = new Promise<{
       storageMode: WriteStorageMode;
@@ -938,10 +1183,20 @@ export function usePeerTransfer() {
 
     // Wait for Receiver to accept (and pick disk location if applicable)
     const decision = await acceptPromise;
+    pendingSenderOfferIdRef.current = null;
     if (abortTransferFlagRef.current) return;
 
+    const totalSingleChunks = SingleEntry ? Math.ceil(SingleEntry.file.size / SITE_CONFIG.chunkSize) : 0;
     const startChunkIndex =
-      SingleEntry && decision.resumeFromChunk > 0 ? decision.resumeFromChunk : 0;
+      SingleEntry &&
+      Number.isInteger(decision.resumeFromChunk) &&
+      decision.resumeFromChunk > 0 &&
+      decision.resumeFromChunk <= totalSingleChunks
+        ? decision.resumeFromChunk
+        : 0;
+
+    // Generate collision-free 8-byte session IV prefix for this transfer
+    const sessionIvPrefix = createSessionIvPrefix();
 
     speedTrackerRef.current = {
       lastTimestamp: performance.now(),
@@ -991,9 +1246,11 @@ export function usePeerTransfer() {
           if (abortTransferFlagRef.current || dc.readyState !== 'open') return;
 
           const encryptedPacket = await encryptChunkPacket(
-            derived.aesKey,
+            derived.transferKey,
             currentChunkIndex,
-            plainBytes
+            plainBytes,
+            fileId,
+            sessionIvPrefix
           );
           dc.send(encryptedPacket);
 
@@ -1061,9 +1318,11 @@ export function usePeerTransfer() {
             if (abortTransferFlagRef.current || dc.readyState !== 'open') return;
 
             const encryptedPacket = await encryptChunkPacket(
-              derived.aesKey,
+              derived.transferKey,
               chunkIndex,
-              chunkBytes
+              chunkBytes,
+              fileId,
+              sessionIvPrefix
             );
             dc.send(encryptedPacket);
 
@@ -1147,9 +1406,10 @@ export function usePeerTransfer() {
       if (!incomingOffer) return;
 
       try {
+        revokeActiveBlobUrl();
         const writer = await StreamFileWriter.create(
           incomingOffer.fileName,
-          incomingOffer.mimeType,
+          'application/octet-stream',
           preferDisk
         );
 
@@ -1159,6 +1419,10 @@ export function usePeerTransfer() {
           smoothedSpeed: 0,
         };
 
+        const maxAllowedBytes = incomingOffer.isFolderArchive
+          ? incomingOffer.fileSize + incomingOffer.itemCount * 1024 + 1024 * 1024
+          : incomingOffer.fileSize;
+
         receiverStateRef.current = {
           fileId: incomingOffer.fileId,
           writer,
@@ -1166,9 +1430,11 @@ export function usePeerTransfer() {
           expectedNextChunk: 0,
           bytesWritten: 0,
           totalBytes: incomingOffer.fileSize,
+          maxAllowedBytes,
           totalChunks: incomingOffer.totalChunks,
           fileName: incomingOffer.fileName,
           isFolderArchive: incomingOffer.isFolderArchive,
+          disconnectedForResume: false,
           startTime: performance.now(),
         };
 
@@ -1184,6 +1450,7 @@ export function usePeerTransfer() {
           currentChunk: 0,
           lastAckedChunk: -1,
           resumedFromChunk: null,
+          completedDownloadUrl: null,
         }));
 
         await sendControlFrame({
@@ -1196,7 +1463,7 @@ export function usePeerTransfer() {
         setErrorCode('fileWriteError');
       }
     },
-    [incomingOffer, sendControlFrame]
+    [incomingOffer, revokeActiveBlobUrl, sendControlFrame]
   );
 
   /**
@@ -1260,10 +1527,10 @@ export function usePeerTransfer() {
    */
   const sendClipboardText = useCallback(
     async (text: string) => {
-      const trimmed = text.trim();
+      const trimmed = text.trim().slice(0, SITE_CONFIG.maxClipboardChars);
       if (!trimmed) return;
 
-      const id = `cb_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+      const id = `cb_${generateRandomHex(6)}`;
       const timestamp = Date.now();
 
       await sendControlFrame({
@@ -1273,15 +1540,17 @@ export function usePeerTransfer() {
         timestamp,
       });
 
-      setClipboardItems((prev) => [
-        {
-          id,
-          text: trimmed,
-          direction: 'sent',
-          timestamp,
-        },
-        ...prev,
-      ]);
+      setClipboardItems((prev) =>
+        [
+          {
+            id,
+            text: trimmed,
+            direction: 'sent' as const,
+            timestamp,
+          },
+          ...prev,
+        ].slice(0, SITE_CONFIG.maxClipboardItems)
+      );
     },
     [sendControlFrame]
   );

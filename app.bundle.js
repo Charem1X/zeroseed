@@ -28,6 +28,18 @@
     maxBufferedAmount: 4 * 1024 * 1024,
     lowBufferedThreshold: 1 * 1024 * 1024,
     brokerTimeoutMs: 3000,
+    maxSignalBytes: 65536,
+    signalFreshnessMs: 60000,
+    maxSeenSignalNonces: 512,
+    maxBrokerFailoverAttempts: 6,
+    maxPendingIceCandidates: 64,
+    maxSdpLength: 32768,
+    maxIceCandidateLength: 2048,
+    maxRamFileBytes: 512 * 1024 * 1024,
+    maxClipboardChars: 65536,
+    maxClipboardItems: 50,
+    maxArchiveDepth: 32,
+    maxArchiveEntries: 10000,
     stunServers: [
       'stun:stun.l.google.com:19302',
       'stun:stun1.l.google.com:19302',
@@ -467,6 +479,7 @@
   }
 
   function isValidSeedFormat(seed) {
+    if (typeof seed !== 'string' || seed.length > 64) return false;
     return /^\d{4}-[a-z]{2,12}-[a-z]{2,12}-[a-z]{2,12}$/.test(normalizeSeed(seed));
   }
 
@@ -479,6 +492,18 @@
     return hex;
   }
 
+  function generateRandomHex(byteLength) {
+    const bytes = new Uint8Array(byteLength);
+    window.crypto.getRandomValues(bytes);
+    return bufferToHex(bytes);
+  }
+
+  function createSessionIvPrefix() {
+    const prefix = new Uint8Array(8);
+    window.crypto.getRandomValues(prefix);
+    return prefix;
+  }
+
   function uint8ToBase64(bytes) {
     let binary = '';
     for (let i = 0; i < bytes.byteLength; i++) {
@@ -488,7 +513,12 @@
   }
 
   function base64ToUint8(base64) {
-    const binary = atob(base64);
+    let binary;
+    try {
+      binary = atob(base64);
+    } catch (_e) {
+      throw new Error('Invalid base64 payload');
+    }
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) {
       bytes[i] = binary.charCodeAt(i);
@@ -511,11 +541,11 @@
       seedBytes,
       { name: 'PBKDF2' },
       false,
-      ['deriveKey']
+      ['deriveBits']
     );
 
     const domainSalt = encoder.encode(SITE_CONFIG.keyDerivationDomain);
-    const aesKey = await window.crypto.subtle.deriveKey(
+    const masterBits = await window.crypto.subtle.deriveBits(
       {
         name: 'PBKDF2',
         salt: domainSalt,
@@ -523,6 +553,38 @@
         hash: 'SHA-256',
       },
       baseKey,
+      256
+    );
+
+    const hkdfKey = await window.crypto.subtle.importKey(
+      'raw',
+      masterBits,
+      { name: 'HKDF' },
+      false,
+      ['deriveKey']
+    );
+
+    const signalKey = await window.crypto.subtle.deriveKey(
+      {
+        name: 'HKDF',
+        hash: 'SHA-256',
+        salt: first128Bits,
+        info: encoder.encode('zeroseed-signal-v1'),
+      },
+      hkdfKey,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['encrypt', 'decrypt']
+    );
+
+    const transferKey = await window.crypto.subtle.deriveKey(
+      {
+        name: 'HKDF',
+        hash: 'SHA-256',
+        salt: first128Bits,
+        info: encoder.encode('zeroseed-transfer-v1'),
+      },
+      hkdfKey,
       { name: 'AES-GCM', length: 256 },
       false,
       ['encrypt', 'decrypt']
@@ -535,14 +597,24 @@
     const fpHex = bufferToHex(new Uint8Array(fpDigest, 0, 4)).toUpperCase();
     const fingerprint = fpHex.slice(0, 4) + '-' + fpHex.slice(4, 8);
 
-    return { normalizedSeed, topicHashHex, topicId, aesKey, fingerprint };
+    return {
+      normalizedSeed: normalizedSeed,
+      topicHashHex: topicHashHex,
+      topicId: topicId,
+      signalKey: signalKey,
+      transferKey: transferKey,
+      aesKey: transferKey,
+      fingerprint: fingerprint,
+    };
   }
 
-  async function encryptJsonPayload(key, payload) {
+  async function encryptJsonPayload(key, payload, aadContext) {
     const iv = window.crypto.getRandomValues(new Uint8Array(12));
-    const encoded = new TextEncoder().encode(JSON.stringify(payload));
+    const encoder = new TextEncoder();
+    const encoded = encoder.encode(JSON.stringify(payload));
+    const additionalData = encoder.encode(aadContext);
     const encryptedBuffer = await window.crypto.subtle.encrypt(
-      { name: 'AES-GCM', iv: iv, tagLength: 128 },
+      { name: 'AES-GCM', iv: iv, additionalData: additionalData, tagLength: 128 },
       key,
       encoded
     );
@@ -553,23 +625,41 @@
     return uint8ToBase64(combined);
   }
 
-  async function decryptJsonPayload(key, base64Packet) {
+  async function decryptJsonPayload(key, base64Packet, aadContext) {
+    if (typeof base64Packet !== 'string' || base64Packet.length > 131072) {
+      throw new Error('Encrypted payload exceeds maximum size');
+    }
     const combined = base64ToUint8(base64Packet);
     if (combined.byteLength < 28) throw new Error('Malformed encrypted packet');
     const iv = combined.subarray(0, 12);
     const ciphertextWithTag = combined.subarray(12);
+    const additionalData = new TextEncoder().encode(aadContext);
     const decryptedBuffer = await window.crypto.subtle.decrypt(
-      { name: 'AES-GCM', iv: iv, tagLength: 128 },
+      { name: 'AES-GCM', iv: iv, additionalData: additionalData, tagLength: 128 },
       key,
       ciphertextWithTag
     );
     return JSON.parse(new TextDecoder().decode(decryptedBuffer));
   }
 
-  async function encryptChunkPacket(key, chunkIndex, plainChunk) {
-    const iv = window.crypto.getRandomValues(new Uint8Array(12));
+  async function encryptChunkPacket(key, chunkIndex, plainChunk, fileId, sessionIvPrefix) {
+    if (!Number.isInteger(chunkIndex) || chunkIndex < 0 || chunkIndex > 0xffffffff) {
+      throw new Error('Invalid chunk index');
+    }
+    if (plainChunk.byteLength > SITE_CONFIG.chunkSize) {
+      throw new Error('Chunk exceeds maximum allowed size');
+    }
+    const prefix =
+      sessionIvPrefix && sessionIvPrefix.byteLength === 8
+        ? sessionIvPrefix
+        : createSessionIvPrefix();
+    const iv = new Uint8Array(12);
+    iv.set(prefix, 0);
+    new DataView(iv.buffer).setUint32(8, chunkIndex, false);
+    const additionalData = new TextEncoder().encode('zs-chunk-v1:' + fileId + ':' + chunkIndex);
+
     const ciphertextWithTag = await window.crypto.subtle.encrypt(
-      { name: 'AES-GCM', iv: iv, tagLength: 128 },
+      { name: 'AES-GCM', iv: iv, additionalData: additionalData, tagLength: 128 },
       key,
       plainChunk
     );
@@ -582,8 +672,10 @@
     return packet;
   }
 
-  async function decryptChunkPacket(key, packet) {
-    if (packet.byteLength < 32) {
+  const MAX_CHUNK_PACKET_BYTES = 4 + 12 + SITE_CONFIG.chunkSize + 16;
+
+  async function decryptChunkPacket(key, packet, fileId) {
+    if (packet.byteLength < 32 || packet.byteLength > MAX_CHUNK_PACKET_BYTES) {
       const err = new Error('AuthTagMismatch');
       err.isAuthTagError = true;
       throw err;
@@ -592,9 +684,10 @@
     const chunkIndex = view.getUint32(0, false);
     const iv = new Uint8Array(packet, 4, 12);
     const ciphertextWithTag = new Uint8Array(packet, 16);
+    const additionalData = new TextEncoder().encode('zs-chunk-v1:' + fileId + ':' + chunkIndex);
     try {
       const plainBuffer = await window.crypto.subtle.decrypt(
-        { name: 'AES-GCM', iv: iv, tagLength: 128 },
+        { name: 'AES-GCM', iv: iv, additionalData: additionalData, tagLength: 128 },
         key,
         ciphertextWithTag
       );
@@ -720,10 +813,8 @@
       this.isDestroyed = false;
       this.isMqttConnected = false;
       this.failoverTimer = null;
-
-      const rand = new Uint8Array(6);
-      window.crypto.getRandomValues(rand);
-      this.clientId = 'zs_' + bufferToHex(rand);
+      this.seenNonces = new Set();
+      this.clientId = 'zs_' + generateRandomHex(8);
     }
 
     getSenderId() {
@@ -782,7 +873,7 @@
               : event.data instanceof Blob
               ? new Uint8Array(await event.data.arrayBuffer())
               : null;
-          if (!raw || raw.byteLength < 2) return;
+          if (!raw || raw.byteLength < 2 || raw.byteLength > SITE_CONFIG.maxSignalBytes * 2) return;
 
           let offset = 0;
           while (offset < raw.byteLength) {
@@ -819,7 +910,9 @@
               const qos = (headerByte >> 1) & 0x03;
               const payloadStart = 2 + topicLen + (qos > 0 ? 2 : 0);
               if (topicStr !== this.opts.topicId || payloadStart > body.byteLength) continue;
-              await this.handleRawTopicPayload(body.subarray(payloadStart));
+              const payloadBytes = body.subarray(payloadStart);
+              if (payloadBytes.byteLength > SITE_CONFIG.maxSignalBytes) continue;
+              await this.handleRawTopicPayload(payloadBytes);
             }
           }
         };
@@ -840,6 +933,11 @@
       this.clearTimer();
       this.cleanupSocketOnly();
       this.failoverCount += 1;
+      if (this.failoverCount >= SITE_CONFIG.maxBrokerFailoverAttempts) {
+        this.isDestroyed = true;
+        this.opts.onAllBrokersFailed();
+        return;
+      }
       if (!wasSettled) {
         this.tryBroker(index + 1);
       } else {
@@ -851,13 +949,39 @@
       try {
         const text = new TextDecoder().decode(payloadBytes);
         const envelope = JSON.parse(text);
-        if (!envelope || envelope.v !== 1 || envelope.senderId === this.clientId || !envelope.p) {
+        if (
+          !envelope ||
+          envelope.v !== 1 ||
+          typeof envelope.senderId !== 'string' ||
+          !/^zs_[0-9a-f]{16}$/.test(envelope.senderId) ||
+          envelope.senderId === this.clientId ||
+          typeof envelope.p !== 'string' ||
+          envelope.p.length > 96000
+        ) {
           return;
         }
-        const decrypted = await decryptJsonPayload(this.opts.aesKey, envelope.p);
+        const aadContext = 'zs-signal-v1:' + this.opts.topicId + ':' + envelope.senderId;
+        const decrypted = await decryptJsonPayload(this.opts.aesKey, envelope.p, aadContext);
+        if (
+          !decrypted ||
+          decrypted.sessionId !== envelope.senderId ||
+          typeof decrypted.timestamp !== 'number' ||
+          !Number.isFinite(decrypted.timestamp) ||
+          Math.abs(Date.now() - decrypted.timestamp) > SITE_CONFIG.signalFreshnessMs ||
+          typeof decrypted.nonce !== 'string' ||
+          !/^[0-9a-f]{24}$/.test(decrypted.nonce) ||
+          this.seenNonces.has(decrypted.nonce)
+        ) {
+          return;
+        }
+        if (this.seenNonces.size >= SITE_CONFIG.maxSeenSignalNonces) {
+          const oldest = this.seenNonces.values().next().value;
+          if (oldest !== undefined) this.seenNonces.delete(oldest);
+        }
+        this.seenNonces.add(decrypted.nonce);
         this.opts.onSignal(decrypted, envelope.senderId);
       } catch (_e) {
-        // Ignore unauthenticated noise
+        // Ignore unauthenticated or replayed noise
       }
     }
 
@@ -871,8 +995,12 @@
       ) {
         return;
       }
-      const fullPayload = Object.assign({}, payload, { timestamp: Date.now() });
-      const encryptedBase64 = await encryptJsonPayload(this.opts.aesKey, fullPayload);
+      const fullPayload = Object.assign({}, payload, {
+        nonce: generateRandomHex(12),
+        timestamp: Date.now(),
+      });
+      const aadContext = 'zs-signal-v1:' + this.opts.topicId + ':' + this.clientId;
+      const encryptedBase64 = await encryptJsonPayload(this.opts.aesKey, fullPayload, aadContext);
       const envelope = { v: 1, senderId: this.clientId, p: encryptedBase64 };
       this.ws.send(buildMqttPublishPacket(this.opts.topicId, JSON.stringify(envelope)));
     }
@@ -952,24 +1080,65 @@
     return typeof window !== 'undefined' && 'showSaveFilePicker' in window;
   }
 
+  function sanitizeFileName(rawName) {
+    if (typeof rawName !== 'string') return 'download.bin';
+    let base = rawName.split(/[/\\]/).pop() || '';
+    base = base
+      .replace(/[\x00-\x1f\x7f]/g, '')
+      .replace(/[\u202A-\u202E\u2066-\u2069\u200E\u200F\u061C]/g, '')
+      .replace(/[<>:"/\\|?*]/g, '_')
+      .replace(/^\.+/, '')
+      .trim();
+    if (!base) return 'download.bin';
+    if (/^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\.|$)/i.test(base)) {
+      base = 'file_' + base;
+    }
+    if (base.length > 180) {
+      const dotIdx = base.lastIndexOf('.');
+      if (dotIdx > 0 && base.length - dotIdx <= 16) {
+        const ext = base.slice(dotIdx);
+        base = base.slice(0, 180 - ext.length) + ext;
+      } else {
+        base = base.slice(0, 180);
+      }
+    }
+    return base || 'download.bin';
+  }
+
+  function sanitizeArchivePath(rawPath) {
+    if (typeof rawPath !== 'string') return 'file.bin';
+    const cleaned = rawPath
+      .replace(/\\/g, '/')
+      .replace(/^[a-zA-Z]:/, '')
+      .replace(/[\x00-\x1f\x7f]/g, '')
+      .replace(/[\u202A-\u202E\u2066-\u2069\u200E\u200F\u061C]/g, '');
+    const safeSegments = cleaned
+      .split('/')
+      .map((seg) => seg.replace(/[<>:"|?*]/g, '_').trim())
+      .filter((seg) => seg.length > 0 && seg !== '.' && seg !== '..')
+      .map((seg) => (seg.length > 150 ? seg.slice(0, 150) : seg));
+    return safeSegments.length > 0 ? safeSegments.join('/') : 'file.bin';
+  }
+
   class StreamFileWriter {
-    constructor(mode, fileName, mimeType, writableStream) {
+    constructor(mode, fileName, _mimeType, writableStream) {
       this.mode = mode;
-      this.fileName = fileName;
-      this.mimeType = mimeType || 'application/octet-stream';
+      this.fileName = sanitizeFileName(fileName);
+      this.mimeType = 'application/octet-stream';
       this.writableStream = writableStream;
       this.ramChunks = [];
       this.bytesWritten = 0;
       this.closed = false;
     }
 
-    static async create(fileName, mimeType, preferDisk) {
+    static async create(fileName, _mimeType, preferDisk) {
+      const safeName = sanitizeFileName(fileName);
       if (preferDisk && isFileSystemAccessSupported()) {
-        const handle = await window.showSaveFilePicker({ suggestedName: fileName });
+        const handle = await window.showSaveFilePicker({ suggestedName: safeName });
         const writable = await handle.createWritable({ keepExistingData: false });
-        return new StreamFileWriter('disk', fileName, mimeType, writable);
+        return new StreamFileWriter('disk', safeName, 'application/octet-stream', writable);
       }
-      return new StreamFileWriter('ram', fileName, mimeType, null);
+      return new StreamFileWriter('ram', safeName, 'application/octet-stream', null);
     }
 
     async writeChunk(chunkData) {
@@ -977,6 +1146,9 @@
       if (this.mode === 'disk' && this.writableStream) {
         await this.writableStream.write(chunkData);
       } else {
+        if (this.bytesWritten + chunkData.byteLength > SITE_CONFIG.maxRamFileBytes) {
+          throw new Error('RAM_LIMIT_EXCEEDED');
+        }
         const copy = new Uint8Array(chunkData.byteLength);
         copy.set(chunkData);
         this.ramChunks.push(copy);
@@ -992,15 +1164,19 @@
         this.writableStream = null;
         return null;
       }
-      const blob = new Blob(this.ramChunks, { type: this.mimeType });
+      const blob = new Blob(this.ramChunks, { type: 'application/octet-stream' });
+      this.ramChunks = [];
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = this.fileName;
-      a.style.display = 'none';
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => document.body.removeChild(a), 250);
+      if (typeof url === 'string' && url.startsWith('blob:')) {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = this.fileName;
+        a.rel = 'noopener noreferrer';
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => document.body.removeChild(a), 250);
+      }
       return url;
     }
 
@@ -1061,7 +1237,8 @@
       }
       if (webkitEntries.length > 0) {
         for (let i = 0; i < webkitEntries.length; i++) {
-          await traverseWebKitEntry(webkitEntries[i], '', results);
+          if (results.length >= SITE_CONFIG.maxArchiveEntries) break;
+          await traverseWebKitEntry(webkitEntries[i], '', results, 0);
         }
         return { entries: results, hasDirectory: hasDirectory, rootFolderName: rootFolderName };
       }
@@ -1069,19 +1246,23 @@
 
     const files = dataTransfer.files || [];
     for (let i = 0; i < files.length; i++) {
+      if (results.length >= SITE_CONFIG.maxArchiveEntries) break;
       const f = files[i];
-      const rel = f.webkitRelativePath || f.name;
+      const rel = sanitizeArchivePath(f.webkitRelativePath || f.name);
       if (f.webkitRelativePath && f.webkitRelativePath.indexOf('/') !== -1) {
         hasDirectory = true;
-        if (!rootFolderName) rootFolderName = f.webkitRelativePath.split('/')[0];
+        if (!rootFolderName) rootFolderName = sanitizeArchivePath(f.webkitRelativePath.split('/')[0]);
       }
       results.push({ file: f, relativePath: rel });
     }
     return { entries: results, hasDirectory: hasDirectory, rootFolderName: rootFolderName };
   }
 
-  async function traverseWebKitEntry(entry, parentPath, results) {
-    const currentPath = parentPath ? parentPath + '/' + entry.name : entry.name;
+  async function traverseWebKitEntry(entry, parentPath, results, depth) {
+    if (depth > SITE_CONFIG.maxArchiveDepth || results.length >= SITE_CONFIG.maxArchiveEntries) {
+      return;
+    }
+    const currentPath = sanitizeArchivePath(parentPath ? parentPath + '/' + entry.name : entry.name);
     if (entry.isFile) {
       const file = await new Promise((resolve, reject) => entry.file(resolve, reject));
       results.push({ file: file, relativePath: currentPath });
@@ -1091,7 +1272,8 @@
         const batch = await new Promise((resolve, reject) => reader.readEntries(resolve, reject));
         if (!batch || batch.length === 0) break;
         for (let i = 0; i < batch.length; i++) {
-          await traverseWebKitEntry(batch[i], currentPath, results);
+          if (results.length >= SITE_CONFIG.maxArchiveEntries) break;
+          await traverseWebKitEntry(batch[i], currentPath, results, depth + 1);
         }
       }
     }
@@ -1102,11 +1284,13 @@
     let hasDirectory = false;
     let rootFolderName = null;
     for (let i = 0; i < fileList.length; i++) {
+      if (entries.length >= SITE_CONFIG.maxArchiveEntries) break;
       const f = fileList[i];
-      const rel = f.webkitRelativePath && f.webkitRelativePath.length > 0 ? f.webkitRelativePath : f.name;
+      const rawRel = f.webkitRelativePath && f.webkitRelativePath.length > 0 ? f.webkitRelativePath : f.name;
+      const rel = sanitizeArchivePath(rawRel);
       if (f.webkitRelativePath && f.webkitRelativePath.indexOf('/') !== -1) {
         hasDirectory = true;
-        if (!rootFolderName) rootFolderName = f.webkitRelativePath.split('/')[0];
+        if (!rootFolderName) rootFolderName = sanitizeArchivePath(f.webkitRelativePath.split('/')[0]);
       }
       entries.push({ file: f, relativePath: rel });
     }
@@ -1148,7 +1332,7 @@
     for (let i = 0; i < entries.length; i++) {
       if (shouldAbort()) break;
       const item = entries[i];
-      const cleanPath = item.relativePath.replace(/^\/+/, '');
+      const cleanPath = sanitizeArchivePath(item.relativePath);
       const nameBytes = encoder.encode(cleanPath);
       const fileSize = item.file.size >>> 0;
       const localHeaderOffset = archiveOffset >>> 0;
@@ -1256,7 +1440,8 @@
   // 6. ISO/IEC 18004 QR CODE SVG GENERATOR (Version 2, ECC-L, 25x25 Matrix)
   // ============================================================================
   function renderSeedQrSvg(text, size) {
-    const bytes = new TextEncoder().encode(text);
+    const bytes = new TextEncoder().encode(String(text || ''));
+    if (bytes.length > 32) return '';
     // Version 2-L: 25x25 modules, 34 data codewords, 10 EC codewords
     const dataCw = new Uint8Array(34);
     const bits = [];
@@ -1463,8 +1648,19 @@
   const senderAckMap = new Map();
   let receiverActiveState = null;
   let abortTransferFlag = false;
+  let pendingSenderOfferId = null;
+  let activeBlobUrl = null;
   let acceptResolver = null;
   const speedTracker = { lastTimestamp: 0, lastBytes: 0, smoothedSpeed: 0 };
+
+  function revokeActiveBlobUrl() {
+    if (activeBlobUrl) {
+      try {
+        URL.revokeObjectURL(activeBlobUrl);
+      } catch (_e) {}
+      activeBlobUrl = null;
+    }
+  }
 
   function formatBytes(bytes) {
     if (!bytes || bytes <= 0) return '0 B';
@@ -1487,7 +1683,9 @@
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;')
+      .replace(/`/g, '&#96;');
   }
 
   function cleanupPeerConnectionOnly() {
@@ -1516,18 +1714,26 @@
 
   function fullDisconnect() {
     abortTransferFlag = true;
+    pendingSenderOfferId = null;
+    if (acceptResolver) {
+      const r = acceptResolver;
+      acceptResolver = null;
+      r({ storageMode: 'ram', resumeFromChunk: 0 });
+    }
     cleanupPeerConnectionOnly();
     if (signalingChannel) {
       signalingChannel.destroy();
       signalingChannel = null;
     }
+    revokeActiveBlobUrl();
     state.brokerStatus.connected = false;
     state.brokerStatus.locked = false;
   }
 
   async function sendControlFrame(frame) {
     if (!dataChannel || dataChannel.readyState !== 'open' || !derivedMaterial) return;
-    const encryptedStr = await encryptJsonPayload(derivedMaterial.aesKey, frame);
+    const aadContext = 'zs-ctrl-v1:' + derivedMaterial.topicId;
+    const encryptedStr = await encryptJsonPayload(derivedMaterial.transferKey, frame, aadContext);
     dataChannel.send(encryptedStr);
   }
 
@@ -1535,14 +1741,21 @@
     if (!derivedMaterial || !receiverActiveState) return;
     const rx = receiverActiveState;
     try {
-      const res = await decryptChunkPacket(derivedMaterial.aesKey, packetBuffer);
+      const res = await decryptChunkPacket(derivedMaterial.transferKey, packetBuffer, rx.fileId);
       const chunkIndex = res.chunkIndex;
       const data = res.data;
 
       if (chunkIndex <= rx.lastChunkIndex) return;
 
+      if (chunkIndex !== rx.expectedNextChunk || rx.bytesWritten + data.byteLength > rx.maxAllowedBytes) {
+        const err = new Error('Chunk sequence or byte limit violation');
+        err.isAuthTagError = true;
+        throw err;
+      }
+
       await rx.writer.writeChunk(data);
       rx.lastChunkIndex = chunkIndex;
+      rx.expectedNextChunk = chunkIndex + 1;
       rx.bytesWritten += data.byteLength;
 
       const now = performance.now();
@@ -1605,7 +1818,8 @@
     if (!derivedMaterial) return;
     let frame;
     try {
-      frame = await decryptJsonPayload(derivedMaterial.aesKey, encryptedText);
+      const aadContext = 'zs-ctrl-v1:' + derivedMaterial.topicId;
+      frame = await decryptJsonPayload(derivedMaterial.transferKey, encryptedText, aadContext);
     } catch (_e) {
       state.errorCode = 'authTagMismatch';
       state.telemetry.phase = 'error';
@@ -1613,14 +1827,53 @@
       return;
     }
 
+    if (!frame || typeof frame !== 'object' || typeof frame.type !== 'string') return;
+
     if (frame.type === 'FILE_OFFER') {
-      const offer = frame.offer;
+      const o = frame.offer;
+      if (
+        !o ||
+        typeof o !== 'object' ||
+        typeof o.fileId !== 'string' ||
+        o.fileId.length === 0 ||
+        o.fileId.length > 256 ||
+        typeof o.fileName !== 'string' ||
+        typeof o.fileSize !== 'number' ||
+        !Number.isFinite(o.fileSize) ||
+        o.fileSize < 0 ||
+        typeof o.totalChunks !== 'number' ||
+        !Number.isInteger(o.totalChunks) ||
+        o.totalChunks < 0 ||
+        typeof o.itemCount !== 'number' ||
+        !Number.isInteger(o.itemCount) ||
+        o.itemCount < 1 ||
+        o.itemCount > SITE_CONFIG.maxArchiveEntries
+      ) {
+        return;
+      }
+
+      const offer = {
+        fileId: o.fileId,
+        fileName: sanitizeFileName(o.fileName),
+        fileSize: o.fileSize,
+        mimeType: 'application/octet-stream',
+        isFolderArchive: Boolean(o.isFolderArchive),
+        itemCount: o.itemCount,
+        totalChunks: o.totalChunks,
+        resumable: Boolean(o.resumable),
+        knownLastAckChunk: Number.isInteger(o.knownLastAckChunk) ? o.knownLastAckChunk : -1,
+      };
+
       if (
         receiverActiveState &&
+        receiverActiveState.disconnectedForResume &&
         receiverActiveState.fileId === offer.fileId &&
         offer.resumable &&
+        offer.fileSize === receiverActiveState.totalBytes &&
+        offer.totalChunks === receiverActiveState.totalChunks &&
         receiverActiveState.lastChunkIndex >= 0
       ) {
+        receiverActiveState.disconnectedForResume = false;
         const resumeFrom = receiverActiveState.lastChunkIndex + 1;
         state.telemetry.phase = 'transferring';
         state.telemetry.resumedFromChunk = resumeFrom;
@@ -1643,23 +1896,68 @@
       state.telemetry.completedDownloadUrl = null;
       renderApp();
     } else if (frame.type === 'FILE_ACCEPT') {
+      if (
+        typeof frame.fileId !== 'string' ||
+        frame.fileId !== pendingSenderOfferId ||
+        (frame.storageMode !== 'disk' && frame.storageMode !== 'ram') ||
+        typeof frame.resumeFromChunk !== 'number' ||
+        !Number.isInteger(frame.resumeFromChunk) ||
+        frame.resumeFromChunk < 0
+      ) {
+        return;
+      }
       if (acceptResolver) {
         const r = acceptResolver;
         acceptResolver = null;
         r({ storageMode: frame.storageMode, resumeFromChunk: frame.resumeFromChunk });
       }
     } else if (frame.type === 'ACK') {
+      if (
+        typeof frame.fileId !== 'string' ||
+        frame.fileId.length > 256 ||
+        typeof frame.lastChunkIndex !== 'number' ||
+        !Number.isInteger(frame.lastChunkIndex) ||
+        frame.lastChunkIndex < -1
+      ) {
+        return;
+      }
       senderAckMap.set(frame.fileId, frame.lastChunkIndex);
       state.telemetry.lastAckedChunk = frame.lastChunkIndex;
       renderTelemetryOnly();
     } else if (frame.type === 'FILE_COMPLETE') {
+      if (
+        typeof frame.fileId !== 'string' ||
+        typeof frame.totalChunks !== 'number' ||
+        !Number.isInteger(frame.totalChunks) ||
+        frame.totalChunks < 0 ||
+        typeof frame.totalBytes !== 'number' ||
+        !Number.isInteger(frame.totalBytes) ||
+        frame.totalBytes < 0
+      ) {
+        return;
+      }
       if (receiverActiveState && receiverActiveState.fileId === frame.fileId) {
+        const rx = receiverActiveState;
+        const countValid =
+          rx.expectedNextChunk === frame.totalChunks &&
+          rx.bytesWritten === frame.totalBytes &&
+          (rx.isFolderArchive || frame.totalBytes === rx.totalBytes);
+        if (!countValid) {
+          await rx.writer.abort();
+          receiverActiveState = null;
+          state.errorCode = 'authTagMismatch';
+          state.telemetry.phase = 'error';
+          renderApp();
+          return;
+        }
         await sendControlFrame({
           type: 'ACK',
-          fileId: receiverActiveState.fileId,
-          lastChunkIndex: receiverActiveState.lastChunkIndex,
+          fileId: rx.fileId,
+          lastChunkIndex: rx.lastChunkIndex,
         });
-        const downloadUrl = await receiverActiveState.writer.finalize();
+        revokeActiveBlobUrl();
+        const downloadUrl = await rx.writer.finalize();
+        activeBlobUrl = downloadUrl;
         receiverActiveState = null;
         state.incomingOffer = null;
         state.telemetry.phase = 'completed';
@@ -1675,6 +1973,12 @@
       }
     } else if (frame.type === 'TRANSFER_ABORT') {
       abortTransferFlag = true;
+      pendingSenderOfferId = null;
+      if (acceptResolver) {
+        const r = acceptResolver;
+        acceptResolver = null;
+        r({ storageMode: 'ram', resumeFromChunk: 0 });
+      }
       if (receiverActiveState) {
         await receiverActiveState.writer.abort();
         receiverActiveState = null;
@@ -1683,12 +1987,22 @@
       state.telemetry.phase = 'error';
       renderApp();
     } else if (frame.type === 'CLIPBOARD_TEXT') {
+      if (typeof frame.text !== 'string' || frame.text.length === 0) return;
+      const boundedText = frame.text.slice(0, SITE_CONFIG.maxClipboardChars);
+      const localId = 'cb_' + generateRandomHex(6);
+      const safeTs =
+        typeof frame.timestamp === 'number' && Number.isFinite(frame.timestamp)
+          ? frame.timestamp
+          : Date.now();
       state.clipboardItems.unshift({
-        id: frame.id,
-        text: frame.text,
+        id: localId,
+        text: boundedText,
         direction: 'received',
-        timestamp: frame.timestamp,
+        timestamp: safeTs,
       });
+      if (state.clipboardItems.length > SITE_CONFIG.maxClipboardItems) {
+        state.clipboardItems.length = SITE_CONFIG.maxClipboardItems;
+      }
       renderApp();
     }
   }
@@ -1717,6 +2031,7 @@
     };
 
     dc.onclose = () => {
+      if (receiverActiveState) receiverActiveState.disconnectedForResume = true;
       if (state.telemetry.phase !== 'completed') {
         state.errorCode = 'peerDisconnected';
         state.telemetry.phase = 'error';
@@ -1746,6 +2061,7 @@
     pc.onconnectionstatechange = () => {
       const st = pc.connectionState;
       if ((st === 'disconnected' || st === 'failed') && state.telemetry.phase !== 'completed') {
+        if (receiverActiveState) receiverActiveState.disconnectedForResume = true;
         state.errorCode = 'peerDisconnected';
         state.telemetry.phase = 'error';
         state.telemetry.roomLocked = false;
@@ -1786,7 +2102,7 @@
 
       const sig = new BlindSignalingChannel({
         topicId: derivedMaterial.topicId,
-        aesKey: derivedMaterial.aesKey,
+        aesKey: derivedMaterial.signalKey,
         onStatusChange: (status) => {
           state.brokerStatus = status;
           if (status.connected && !status.locked) {
@@ -1812,10 +2128,13 @@
         },
         onSignal: async (payload, senderId) => {
           if (sig.isLocked()) return;
+          if (activeRole === 'sender' && payload.role !== 'receiver') return;
+          if (activeRole === 'receiver' && payload.role !== 'sender') return;
           if (remotePeerId && remotePeerId !== senderId) return;
 
           if (activeRole === 'sender') {
-            if (payload.type === 'PEER_HELLO' && payload.role === 'receiver') {
+            if (payload.type === 'PEER_HELLO') {
+              if (peerConn && peerConn.connectionState !== 'failed') return;
               remotePeerId = senderId;
               state.telemetry.phase = 'handshaking';
               renderApp();
@@ -1831,8 +2150,17 @@
                 sdp: { type: pc.localDescription.type, sdp: pc.localDescription.sdp },
               });
             } else if (payload.type === 'SDP_ANSWER' && payload.sdp) {
+              const sdp = payload.sdp;
+              if (
+                sdp.type !== 'answer' ||
+                typeof sdp.sdp !== 'string' ||
+                sdp.sdp.length > SITE_CONFIG.maxSdpLength ||
+                !/a=fingerprint:sha-256 /i.test(sdp.sdp)
+              ) {
+                return;
+              }
               if (peerConn && peerConn.signalingState === 'have-local-offer') {
-                await peerConn.setRemoteDescription(new RTCSessionDescription(payload.sdp));
+                await peerConn.setRemoteDescription(new RTCSessionDescription(sdp));
                 for (let i = 0; i < pendingIceCandidates.length; i++) {
                   try {
                     await peerConn.addIceCandidate(new RTCIceCandidate(pendingIceCandidates[i]));
@@ -1841,32 +2169,49 @@
                 pendingIceCandidates = [];
               }
             } else if (payload.type === 'ICE_CANDIDATE' && payload.candidate) {
+              const cand = payload.candidate;
+              if (
+                typeof cand.candidate !== 'string' ||
+                cand.candidate.length > SITE_CONFIG.maxIceCandidateLength
+              ) {
+                return;
+              }
               if (peerConn && peerConn.remoteDescription) {
                 try {
-                  await peerConn.addIceCandidate(new RTCIceCandidate(payload.candidate));
+                  await peerConn.addIceCandidate(new RTCIceCandidate(cand));
                 } catch (_e) {}
-              } else {
-                pendingIceCandidates.push(payload.candidate);
+              } else if (pendingIceCandidates.length < SITE_CONFIG.maxPendingIceCandidates) {
+                pendingIceCandidates.push(cand);
               }
             }
           } else {
-            if (payload.type === 'PEER_HELLO' && payload.role === 'sender') {
+            if (payload.type === 'PEER_HELLO') {
               await sig.publishEncrypted({
                 type: 'PEER_HELLO',
                 role: 'receiver',
                 sessionId: sig.getSenderId(),
               });
             } else if (payload.type === 'SDP_OFFER' && payload.sdp) {
+              const sdp = payload.sdp;
+              if (
+                sdp.type !== 'offer' ||
+                typeof sdp.sdp !== 'string' ||
+                sdp.sdp.length > SITE_CONFIG.maxSdpLength ||
+                !/a=fingerprint:sha-256 /i.test(sdp.sdp)
+              ) {
+                return;
+              }
+              if (peerConn && peerConn.connectionState !== 'failed') return;
               remotePeerId = senderId;
               state.telemetry.phase = 'handshaking';
               renderApp();
               cleanupPeerConnectionOnly();
               remotePeerId = senderId;
               const pc = ensurePeerConnection('receiver');
-              await pc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
+              await pc.setRemoteDescription(new RTCSessionDescription(sdp));
               for (let i = 0; i < pendingIceCandidates.length; i++) {
                 try {
-                  await pc.addIceCandidate(new RTCIceCandidate(pendingIceCandidates[i]));
+                  await peerConn.addIceCandidate(new RTCIceCandidate(pendingIceCandidates[i]));
                 } catch (_e) {}
               }
               pendingIceCandidates = [];
@@ -1879,12 +2224,19 @@
                 sdp: { type: pc.localDescription.type, sdp: pc.localDescription.sdp },
               });
             } else if (payload.type === 'ICE_CANDIDATE' && payload.candidate) {
+              const cand = payload.candidate;
+              if (
+                typeof cand.candidate !== 'string' ||
+                cand.candidate.length > SITE_CONFIG.maxIceCandidateLength
+              ) {
+                return;
+              }
               if (peerConn && peerConn.remoteDescription) {
                 try {
-                  await peerConn.addIceCandidate(new RTCIceCandidate(payload.candidate));
+                  await peerConn.addIceCandidate(new RTCIceCandidate(cand));
                 } catch (_e) {}
-              } else {
-                pendingIceCandidates.push(payload.candidate);
+              } else if (pendingIceCandidates.length < SITE_CONFIG.maxPendingIceCandidates) {
+                pendingIceCandidates.push(cand);
               }
             }
           }
@@ -1969,12 +2321,15 @@
         singleEntry.file.lastModified
       : 'zip::' + archiveName + '::' + totalRawBytes;
 
-    const totalChunksEstimate = Math.max(1, Math.ceil(totalRawBytes / SITE_CONFIG.chunkSize));
+    const totalChunksEstimate =
+      singleEntry && totalRawBytes === 0
+        ? 0
+        : Math.max(1, Math.ceil(totalRawBytes / SITE_CONFIG.chunkSize));
     const knownLastAck = singleEntry ? (senderAckMap.get(fileId) ?? -1) : -1;
 
     const offer = {
       fileId: fileId,
-      fileName: fileName,
+      fileName: sanitizeFileName(fileName),
       fileSize: totalRawBytes,
       mimeType: mimeType,
       isFolderArchive: isMultiOrFolder,
@@ -1984,16 +2339,27 @@
       knownLastAckChunk: knownLastAck,
     };
 
+    pendingSenderOfferId = fileId;
+
     const acceptPromise = new Promise((resolve) => {
       acceptResolver = resolve;
     });
 
     await sendControlFrame({ type: 'FILE_OFFER', offer: offer });
     const decision = await acceptPromise;
+    pendingSenderOfferId = null;
     if (abortTransferFlag) return;
 
+    const totalSingleChunks = singleEntry ? Math.ceil(singleEntry.file.size / SITE_CONFIG.chunkSize) : 0;
     const startChunkIndex =
-      singleEntry && decision.resumeFromChunk > 0 ? decision.resumeFromChunk : 0;
+      singleEntry &&
+      Number.isInteger(decision.resumeFromChunk) &&
+      decision.resumeFromChunk > 0 &&
+      decision.resumeFromChunk <= totalSingleChunks
+        ? decision.resumeFromChunk
+        : 0;
+
+    const sessionIvPrefix = createSessionIvPrefix();
 
     speedTracker.lastTimestamp = performance.now();
     speedTracker.lastBytes = startChunkIndex * SITE_CONFIG.chunkSize;
@@ -2031,9 +2397,11 @@
           if (abortTransferFlag || dataChannel.readyState !== 'open') return;
 
           const encryptedPacket = await encryptChunkPacket(
-            derivedMaterial.aesKey,
+            derivedMaterial.transferKey,
             currentChunkIndex,
-            plainBytes
+            plainBytes,
+            fileId,
+            sessionIvPrefix
           );
           dataChannel.send(encryptedPacket);
 
@@ -2089,9 +2457,11 @@
             if (abortTransferFlag || dataChannel.readyState !== 'open') return;
 
             const encryptedPacket = await encryptChunkPacket(
-              derivedMaterial.aesKey,
+              derivedMaterial.transferKey,
               chunkIndex,
-              chunkBytes
+              chunkBytes,
+              fileId,
+              sessionIvPrefix
             );
             dataChannel.send(encryptedPacket);
 
@@ -2269,8 +2639,10 @@
           ? `<div style="margin-top:0.75rem;padding:0.75rem;border-radius:0.75rem;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);display:flex;align-items:center;justify-content:space-between;gap:0.5rem;font-size:0.78rem;color:#34d399;font-weight:700;">
               <span>✓ ${escapeHtml(t.telemetry.transferComplete)}</span>
               ${
-                tm.completedDownloadUrl && tm.activeFileName
-                  ? `<a href="${tm.completedDownloadUrl}" download="${escapeHtml(tm.activeFileName)}" class="zs-btn-primary" style="padding:0.35rem 0.75rem;font-size:0.72rem;text-decoration:none;">${escapeHtml(t.telemetry.downloadAgain)}</a>`
+                tm.completedDownloadUrl &&
+                String(tm.completedDownloadUrl).startsWith('blob:') &&
+                tm.activeFileName
+                  ? `<a href="${escapeHtml(tm.completedDownloadUrl)}" download="${escapeHtml(sanitizeFileName(tm.activeFileName))}" rel="noopener noreferrer" class="zs-btn-primary" style="padding:0.35rem 0.75rem;font-size:0.72rem;text-decoration:none;">${escapeHtml(t.telemetry.downloadAgain)}</a>`
                   : ''
               }
             </div>`
@@ -2554,7 +2926,7 @@
                             ${escapeHtml(t.receiver.seedInputLabel)}
                           </label>
                           <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
-                            <input id="zs-receiver-seed" type="text" value="${escapeHtml(state.receiverSeedInput)}" placeholder="${escapeHtml(t.receiver.seedInputPlaceholder)}" class="zs-input font-mono" style="flex:1;min-width:14rem;" autocomplete="off" spellcheck="false" />
+                            <input id="zs-receiver-seed" type="text" value="${escapeHtml(state.receiverSeedInput)}" placeholder="${escapeHtml(t.receiver.seedInputPlaceholder)}" maxlength="64" class="zs-input font-mono" style="flex:1;min-width:14rem;" autocomplete="off" spellcheck="false" />
                             ${
                               !isTunnelOpen
                                 ? `<button type="button" id="zs-btn-connect-rx" class="zs-btn-sky" style="padding:0.75rem 1.25rem;font-size:0.85rem;">⚡ ${escapeHtml(t.receiver.connectBtn)}</button>`
@@ -2616,7 +2988,7 @@
                     </span>
                   </div>
 
-                  <textarea id="zs-clipboard-input" rows="2" placeholder="${escapeHtml(t.clipboard.placeholder)}" ${!isTunnelOpen ? 'disabled' : ''} class="zs-input font-mono" style="font-size:0.78rem;resize:none;">${escapeHtml(state.clipboardDraft)}</textarea>
+                  <textarea id="zs-clipboard-input" rows="2" placeholder="${escapeHtml(t.clipboard.placeholder)}" ${!isTunnelOpen ? 'disabled' : ''} maxlength="${SITE_CONFIG.maxClipboardChars}" class="zs-input font-mono" style="font-size:0.78rem;resize:none;">${escapeHtml(state.clipboardDraft)}</textarea>
 
                   <div style="display:flex;justify-content:flex-end;gap:0.5rem;margin-top:0.5rem;">
                     ${
@@ -2843,6 +3215,13 @@
         state.role = 'sender';
         state.errorCode = null;
         state.incomingOffer = null;
+        state.clipboardItems = [];
+        revokeActiveBlobUrl();
+        if (receiverActiveState) {
+          receiverActiveState.writer.abort();
+          receiverActiveState = null;
+        }
+        senderAckMap.clear();
         startSessionWithSeed(state.senderSeed, 'sender');
       }
     });
@@ -2852,6 +3231,13 @@
         state.role = 'receiver';
         state.errorCode = null;
         state.incomingOffer = null;
+        state.clipboardItems = [];
+        revokeActiveBlobUrl();
+        if (receiverActiveState) {
+          receiverActiveState.writer.abort();
+          receiverActiveState = null;
+        }
+        senderAckMap.clear();
         fullDisconnect();
         state.telemetry.phase = 'idle';
         state.telemetry.topicHashHex = '';
@@ -2876,6 +3262,12 @@
     on('zs-btn-regen-seed', () => {
       state.senderSeed = generateRandomSeed();
       senderAckMap.clear();
+      state.clipboardItems = [];
+      revokeActiveBlobUrl();
+      if (receiverActiveState) {
+        receiverActiveState.writer.abort();
+        receiverActiveState = null;
+      }
       startSessionWithSeed(state.senderSeed, 'sender');
     });
 
@@ -2970,9 +3362,9 @@
     }
 
     on('zs-btn-send-clip', async () => {
-      const trimmed = state.clipboardDraft.trim();
+      const trimmed = state.clipboardDraft.trim().slice(0, SITE_CONFIG.maxClipboardChars);
       if (!trimmed) return;
-      const id = 'cb_' + Date.now();
+      const id = 'cb_' + generateRandomHex(6);
       const ts = Date.now();
       await sendControlFrame({
         type: 'CLIPBOARD_TEXT',
@@ -2986,6 +3378,9 @@
         direction: 'sent',
         timestamp: ts,
       });
+      if (state.clipboardItems.length > SITE_CONFIG.maxClipboardItems) {
+        state.clipboardItems.length = SITE_CONFIG.maxClipboardItems;
+      }
       state.clipboardDraft = '';
       renderApp();
     });
@@ -3021,19 +3416,32 @@
     const offer = state.incomingOffer;
     if (!offer) return;
     try {
-      const writer = await StreamFileWriter.create(offer.fileName, offer.mimeType, preferDisk);
+      revokeActiveBlobUrl();
+      const writer = await StreamFileWriter.create(
+        offer.fileName,
+        'application/octet-stream',
+        preferDisk
+      );
       speedTracker.lastTimestamp = performance.now();
       speedTracker.lastBytes = 0;
       speedTracker.smoothedSpeed = 0;
+
+      const maxAllowedBytes = offer.isFolderArchive
+        ? offer.fileSize + offer.itemCount * 1024 + 1024 * 1024
+        : offer.fileSize;
 
       receiverActiveState = {
         fileId: offer.fileId,
         writer: writer,
         lastChunkIndex: -1,
+        expectedNextChunk: 0,
         bytesWritten: 0,
         totalBytes: offer.fileSize,
+        maxAllowedBytes: maxAllowedBytes,
         totalChunks: offer.totalChunks,
         fileName: offer.fileName,
+        isFolderArchive: offer.isFolderArchive,
+        disconnectedForResume: false,
       };
 
       state.incomingOffer = null;
@@ -3045,6 +3453,7 @@
       state.telemetry.currentChunk = 0;
       state.telemetry.lastAckedChunk = -1;
       state.telemetry.resumedFromChunk = null;
+      state.telemetry.completedDownloadUrl = null;
       renderApp();
 
       await sendControlFrame({
@@ -3105,6 +3514,16 @@
       }
     }
     renderApp();
+  });
+
+  window.addEventListener('pagehide', () => {
+    fullDisconnect();
+    if (receiverActiveState) {
+      receiverActiveState.writer.abort();
+      receiverActiveState = null;
+    }
+    senderAckMap.clear();
+    state.clipboardItems = [];
   });
 
   // Boot application immediately on DOM ready

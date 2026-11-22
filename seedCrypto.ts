@@ -91,8 +91,36 @@ export interface DualDerivedMaterial {
   normalizedSeed: string;
   topicHashHex: string;
   topicId: string;
+  signalKey: CryptoKey;
+  transferKey: CryptoKey;
+  /** Alias for transferKey for backwards compatibility */
   aesKey: CryptoKey;
   fingerprint: string;
+}
+
+/**
+ * Generates cryptographically secure random hex characters using CSPRNG.
+ */
+export function generateRandomHex(byteLength: number): string {
+  if (typeof window === 'undefined' || !window.crypto?.getRandomValues) {
+    throw new Error('CSPRNG (window.crypto.getRandomValues) is not available.');
+  }
+  const bytes = new Uint8Array(byteLength);
+  window.crypto.getRandomValues(bytes);
+  return bufferToHex(bytes);
+}
+
+/**
+ * Generates an 8-byte CSPRNG session IV prefix used with the 4-byte chunkIndex
+ * to guarantee collision-free 12-byte AES-GCM nonces for up to 2^32 chunks.
+ */
+export function createSessionIvPrefix(): Uint8Array {
+  if (typeof window === 'undefined' || !window.crypto?.getRandomValues) {
+    throw new Error('CSPRNG (window.crypto.getRandomValues) is not available.');
+  }
+  const prefix = new Uint8Array(8);
+  window.crypto.getRandomValues(prefix);
+  return prefix;
 }
 
 /**
@@ -141,6 +169,9 @@ export function normalizeSeed(seed: string): string {
  * Validates that a seed follows the expected 4-digit + 3 ASCII word structure.
  */
 export function isValidSeedFormat(seed: string): boolean {
+  if (typeof seed !== 'string' || seed.length > 64) {
+    return false;
+  }
   const norm = normalizeSeed(seed);
   return /^\d{4}-[a-z]{2,12}-[a-z]{2,12}-[a-z]{2,12}$/.test(norm);
 }
@@ -164,7 +195,12 @@ function uint8ToBase64(bytes: Uint8Array): string {
 }
 
 function base64ToUint8(base64: string): Uint8Array {
-  const binary = atob(base64);
+  let binary: string;
+  try {
+    binary = atob(base64);
+  } catch {
+    throw new Error('Invalid base64 payload.');
+  }
   const len = binary.length;
   const bytes = new Uint8Array(len);
   for (let i = 0; i < len; i++) {
@@ -174,11 +210,13 @@ function base64ToUint8(base64: string): Uint8Array {
 }
 
 /**
- * Dual Cryptographic Derivation from a single Seed:
+ * Dual Cryptographic Derivation from a single Seed with HKDF domain separation:
  * 1. Blind Signaling Channel Topic ID: First 128 bits (32 hex chars) of SHA-256(normalizedSeed)
  *    formatted as `p2p-io/v1/<first_32_hex_chars>`.
- * 2. End-to-End Encryption Key: PBKDF2-HMAC-SHA256 (150,000 iterations) with domain separator
- *    `"p2p-e2ee-key-v1"` -> non-extractable 256-bit AES-GCM CryptoKey.
+ * 2. Master Key Material: PBKDF2-HMAC-SHA256 (150,000 iterations) with domain separator
+ *    `"p2p-e2ee-key-v1"`, split via HKDF-SHA-256 into separate non-extractable keys:
+ *    - `signalKey` (`"zeroseed-signal-v1"`) for signaling messages
+ *    - `transferKey` (`"zeroseed-transfer-v1"`) for DataChannel payload & chunks
  */
 export async function deriveDualKeys(rawSeed: string): Promise<DualDerivedMaterial> {
   if (typeof window === 'undefined' || !window.crypto?.subtle) {
@@ -195,17 +233,17 @@ export async function deriveDualKeys(rawSeed: string): Promise<DualDerivedMateri
   const topicHashHex = bufferToHex(first128Bits);
   const topicId = `${SITE_CONFIG.protocolNamespace}/${topicHashHex}`;
 
-  // 2. End-to-End AES-GCM-256 Key via PBKDF2 (150,000 iterations, SHA-256, domain salt)
+  // 2. Master bits via PBKDF2 (150,000 iterations, SHA-256, domain salt) -> HKDF split
   const baseKey = await window.crypto.subtle.importKey(
     'raw',
     seedBytes,
     { name: 'PBKDF2' },
     false,
-    ['deriveKey']
+    ['deriveBits']
   );
 
   const domainSalt = encoder.encode(SITE_CONFIG.keyDerivationDomain);
-  const aesKey = await window.crypto.subtle.deriveKey(
+  const masterBits = await window.crypto.subtle.deriveBits(
     {
       name: 'PBKDF2',
       salt: domainSalt,
@@ -213,11 +251,40 @@ export async function deriveDualKeys(rawSeed: string): Promise<DualDerivedMateri
       hash: 'SHA-256',
     },
     baseKey,
+    256
+  );
+
+  const hkdfKey = await window.crypto.subtle.importKey(
+    'raw',
+    masterBits,
+    { name: 'HKDF' },
+    false,
+    ['deriveKey']
+  );
+
+  const signalKey = await window.crypto.subtle.deriveKey(
     {
-      name: 'AES-GCM',
-      length: 256,
+      name: 'HKDF',
+      hash: 'SHA-256',
+      salt: first128Bits,
+      info: encoder.encode('zeroseed-signal-v1'),
     },
-    false, // non-extractable for zero-leak security
+    hkdfKey,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  );
+
+  const transferKey = await window.crypto.subtle.deriveKey(
+    {
+      name: 'HKDF',
+      hash: 'SHA-256',
+      salt: first128Bits,
+      info: encoder.encode('zeroseed-transfer-v1'),
+    },
+    hkdfKey,
+    { name: 'AES-GCM', length: 256 },
+    false,
     ['encrypt', 'decrypt']
   );
 
@@ -233,24 +300,33 @@ export async function deriveDualKeys(rawSeed: string): Promise<DualDerivedMateri
     normalizedSeed,
     topicHashHex,
     topicId,
-    aesKey,
+    signalKey,
+    transferKey,
+    aesKey: transferKey,
     fingerprint,
   };
 }
 
 /**
  * Encrypts a JSON object (e.g. WebRTC SDP Offer/Answer, ICE Candidate, or Control/Clipboard message)
- * using the derived AES-GCM-256 key with a fresh 12-byte CSPRNG IV.
+ * using the derived AES-GCM-256 key with a fresh 12-byte CSPRNG IV and domain-separated AAD.
  * Returns a base64 string containing `[12-byte IV + Ciphertext + 16-byte GCM Auth Tag]`.
  */
-export async function encryptJsonPayload(key: CryptoKey, payload: unknown): Promise<string> {
+export async function encryptJsonPayload(
+  key: CryptoKey,
+  payload: unknown,
+  aadContext: string
+): Promise<string> {
   const iv = window.crypto.getRandomValues(new Uint8Array(12));
-  const encoded = new TextEncoder().encode(JSON.stringify(payload));
+  const encoder = new TextEncoder();
+  const encoded = encoder.encode(JSON.stringify(payload));
+  const additionalData = encoder.encode(aadContext);
 
   const encryptedBuffer = await window.crypto.subtle.encrypt(
     {
       name: 'AES-GCM',
       iv,
+      additionalData,
       tagLength: 128,
     },
     key,
@@ -266,13 +342,18 @@ export async function encryptJsonPayload(key: CryptoKey, payload: unknown): Prom
 }
 
 /**
- * Decrypts a base64-encoded AES-GCM-256 JSON payload.
- * Throws if GCM authentication tag verification fails.
+ * Decrypts a base64-encoded AES-GCM-256 JSON payload and verifies its domain-separated AAD.
+ * Throws if GCM authentication tag verification fails or payload exceeds size limit.
  */
 export async function decryptJsonPayload<T = unknown>(
   key: CryptoKey,
-  base64Packet: string
+  base64Packet: string,
+  aadContext: string
 ): Promise<T> {
+  if (typeof base64Packet !== 'string' || base64Packet.length > 131_072) {
+    throw new Error('Encrypted payload exceeds maximum allowed size.');
+  }
+
   const combined = base64ToUint8(base64Packet);
   if (combined.byteLength < 28) {
     throw new Error('Malformed encrypted payload: shorter than IV + GCM tag.');
@@ -280,11 +361,13 @@ export async function decryptJsonPayload<T = unknown>(
 
   const iv = combined.subarray(0, 12);
   const ciphertextWithTag = combined.subarray(12);
+  const additionalData = new TextEncoder().encode(aadContext);
 
   const decryptedBuffer = await window.crypto.subtle.decrypt(
     {
       name: 'AES-GCM',
       iv,
+      additionalData,
       tagLength: 128,
     },
     key,
@@ -296,21 +379,41 @@ export async function decryptJsonPayload<T = unknown>(
 }
 
 /**
- * Encrypts a 64 KB binary file/ZIP chunk using AES-GCM-256 and packs it into the wire format:
+ * Encrypts a 64 KB binary file/ZIP chunk using AES-GCM-256 with deterministic collision-free
+ * per-session IV `[8-byte sessionPrefix + 4-byte chunkIndex]` and file-bound AAD, packing into:
  * `[4-byte Big-Endian chunkIndex + 12-byte IV + Encrypted Data + 16-byte GCM Auth Tag]`
  */
 export async function encryptChunkPacket(
   key: CryptoKey,
   chunkIndex: number,
-  plainChunk: Uint8Array
+  plainChunk: Uint8Array,
+  fileId: string,
+  sessionIvPrefix?: Uint8Array
 ): Promise<ArrayBuffer> {
-  const iv = window.crypto.getRandomValues(new Uint8Array(12));
+  if (!Number.isInteger(chunkIndex) || chunkIndex < 0 || chunkIndex > 0xffffffff) {
+    throw new Error(`Invalid chunk index: ${chunkIndex}`);
+  }
+  if (plainChunk.byteLength > SITE_CONFIG.chunkSize) {
+    throw new Error(`Chunk size ${plainChunk.byteLength} exceeds maximum ${SITE_CONFIG.chunkSize}.`);
+  }
+
+  const prefix =
+    sessionIvPrefix && sessionIvPrefix.byteLength === 8
+      ? sessionIvPrefix
+      : createSessionIvPrefix();
+
+  const iv = new Uint8Array(12);
+  iv.set(prefix, 0);
+  new DataView(iv.buffer).setUint32(8, chunkIndex, false);
+
+  const additionalData = new TextEncoder().encode(`zs-chunk-v1:${fileId}:${chunkIndex}`);
 
   // Web Crypto AES-GCM appends the 16-byte (128-bit) Auth Tag at the end of the ciphertext
   const ciphertextWithTag = await window.crypto.subtle.encrypt(
     {
       name: 'AES-GCM',
       iv,
+      additionalData,
       tagLength: 128,
     },
     key,
@@ -324,7 +427,7 @@ export async function encryptChunkPacket(
 
   // 1. 4-byte Big-Endian chunkIndex (bytes 0..3)
   view.setUint32(0, chunkIndex, false);
-  // 2. 12-byte random IV (bytes 4..15)
+  // 2. 12-byte deterministic collision-free IV (bytes 4..15)
   packetBytes.set(iv, 4);
   // 3. Ciphertext + 16-byte GCM Auth Tag (bytes 16..end)
   packetBytes.set(new Uint8Array(ciphertextWithTag), 16);
@@ -332,16 +435,20 @@ export async function encryptChunkPacket(
   return packet;
 }
 
+const MAX_CHUNK_PACKET_BYTES = 4 + 12 + SITE_CONFIG.chunkSize + 16;
+
 /**
  * Unpacks and authenticates a binary chunk frame:
  * `[4-byte Big-Endian chunkIndex + 12-byte IV + Encrypted Data + 16-byte GCM Auth Tag]`
+ * Binds `chunkIndex` and `fileId` via GCM AAD and rejects oversized/truncated frames.
  * Throws `AuthTagMismatchError` immediately if any byte or the 16-byte GCM Auth Tag is invalid.
  */
 export async function decryptChunkPacket(
   key: CryptoKey,
-  packet: ArrayBuffer
+  packet: ArrayBuffer,
+  fileId: string
 ): Promise<{ chunkIndex: number; data: Uint8Array }> {
-  if (packet.byteLength < 32) {
+  if (packet.byteLength < 32 || packet.byteLength > MAX_CHUNK_PACKET_BYTES) {
     throw new AuthTagMismatchError(-1);
   }
 
@@ -349,12 +456,14 @@ export async function decryptChunkPacket(
   const chunkIndex = view.getUint32(0, false); // Big-Endian
   const iv = new Uint8Array(packet, 4, 12);
   const ciphertextWithTag = new Uint8Array(packet, 16);
+  const additionalData = new TextEncoder().encode(`zs-chunk-v1:${fileId}:${chunkIndex}`);
 
   try {
     const plainBuffer = await window.crypto.subtle.decrypt(
       {
         name: 'AES-GCM',
         iv,
+        additionalData,
         tagLength: 128,
       },
       key,

@@ -1,5 +1,5 @@
 import { SITE_CONFIG } from './site';
-import { encryptJsonPayload, decryptJsonPayload } from './seedCrypto';
+import { encryptJsonPayload, decryptJsonPayload, generateRandomHex } from './seedCrypto';
 
 export type SignalMessageType = 'PEER_HELLO' | 'SDP_OFFER' | 'SDP_ANSWER' | 'ICE_CANDIDATE';
 
@@ -14,6 +14,7 @@ export interface DecryptedSignalPayload {
   type: SignalMessageType;
   role: 'sender' | 'receiver';
   sessionId: string;
+  nonce: string;
   sdp?: RTCSessionDescriptionInit;
   candidate?: RTCIceCandidateInit;
   timestamp: number;
@@ -170,14 +171,12 @@ export class BlindSignalingChannel {
   private isDestroyed = false;
   private isMqttConnected = false;
   private failoverTimer: ReturnType<typeof setTimeout> | null = null;
+  private seenNonces = new Set<string>();
   private readonly opts: BlindSignalingOptions;
 
   constructor(opts: BlindSignalingOptions) {
     this.opts = opts;
-    const rand = new Uint8Array(6);
-    window.crypto.getRandomValues(rand);
-    const hex = Array.from(rand, (b) => b.toString(16).padStart(2, '0')).join('');
-    this.clientId = `zs_${hex}`;
+    this.clientId = `zs_${generateRandomHex(8)}`;
   }
 
   public getSenderId(): string {
@@ -239,7 +238,7 @@ export class BlindSignalingChannel {
             : event.data instanceof Blob
             ? new Uint8Array(await event.data.arrayBuffer())
             : null;
-        if (!raw || raw.byteLength < 2) return;
+        if (!raw || raw.byteLength < 2 || raw.byteLength > SITE_CONFIG.maxSignalBytes * 2) return;
 
         let offset = 0;
         while (offset < raw.byteLength) {
@@ -282,6 +281,7 @@ export class BlindSignalingChannel {
             if (topicStr !== this.opts.topicId || payloadStart > body.byteLength) continue;
 
             const payloadBytes = body.subarray(payloadStart);
+            if (payloadBytes.byteLength > SITE_CONFIG.maxSignalBytes) continue;
             await this.handleRawTopicPayload(payloadBytes);
           }
         }
@@ -306,6 +306,11 @@ export class BlindSignalingChannel {
     this.clearTimer();
     this.cleanupSocketOnly();
     this.failoverCount += 1;
+    if (this.failoverCount >= SITE_CONFIG.maxBrokerFailoverAttempts) {
+      this.isDestroyed = true;
+      this.opts.onAllBrokersFailed();
+      return;
+    }
     if (!wasSettled) {
       this.tryBroker(index + 1);
     } else {
@@ -319,21 +324,55 @@ export class BlindSignalingChannel {
       const text = new TextDecoder().decode(payloadBytes);
       const envelope = JSON.parse(text) as EncryptedSignalEnvelope;
 
-      if (!envelope || envelope.v !== 1 || envelope.senderId === this.clientId || !envelope.p) {
+      if (
+        !envelope ||
+        envelope.v !== 1 ||
+        typeof envelope.senderId !== 'string' ||
+        !/^zs_[0-9a-f]{16}$/.test(envelope.senderId) ||
+        envelope.senderId === this.clientId ||
+        typeof envelope.p !== 'string' ||
+        envelope.p.length > 96_000
+      ) {
         return;
       }
 
+      const aadContext = `zs-signal-v1:${this.opts.topicId}:${envelope.senderId}`;
       const decrypted = await decryptJsonPayload<DecryptedSignalPayload>(
         this.opts.aesKey,
-        envelope.p
+        envelope.p,
+        aadContext
       );
+
+      if (
+        !decrypted ||
+        decrypted.sessionId !== envelope.senderId ||
+        typeof decrypted.timestamp !== 'number' ||
+        !Number.isFinite(decrypted.timestamp) ||
+        Math.abs(Date.now() - decrypted.timestamp) > SITE_CONFIG.signalFreshnessMs ||
+        typeof decrypted.nonce !== 'string' ||
+        !/^[0-9a-f]{24}$/.test(decrypted.nonce) ||
+        this.seenNonces.has(decrypted.nonce)
+      ) {
+        return;
+      }
+
+      if (this.seenNonces.size >= SITE_CONFIG.maxSeenSignalNonces) {
+        const oldest = this.seenNonces.values().next().value;
+        if (oldest !== undefined) {
+          this.seenNonces.delete(oldest);
+        }
+      }
+      this.seenNonces.add(decrypted.nonce);
+
       this.opts.onSignal(decrypted, envelope.senderId);
     } catch {
-      // Silently ignore unauthenticated noise on the blind topic
+      // Silently ignore unauthenticated noise or replayed frames on the blind topic
     }
   }
 
-  public async publishEncrypted(payload: Omit<DecryptedSignalPayload, 'timestamp'>): Promise<void> {
+  public async publishEncrypted(
+    payload: Omit<DecryptedSignalPayload, 'timestamp' | 'nonce'>
+  ): Promise<void> {
     if (
       this.isDestroyed ||
       this.isRoomLocked ||
@@ -346,10 +385,12 @@ export class BlindSignalingChannel {
 
     const fullPayload: DecryptedSignalPayload = {
       ...payload,
+      nonce: generateRandomHex(12),
       timestamp: Date.now(),
     };
 
-    const encryptedBase64 = await encryptJsonPayload(this.opts.aesKey, fullPayload);
+    const aadContext = `zs-signal-v1:${this.opts.topicId}:${this.clientId}`;
+    const encryptedBase64 = await encryptJsonPayload(this.opts.aesKey, fullPayload, aadContext);
     const envelope: EncryptedSignalEnvelope = {
       v: 1,
       senderId: this.clientId,
